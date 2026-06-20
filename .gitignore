@@ -1,0 +1,18 @@
+# dependencies
+node_modules/
+
+# secrets (provider keys live here, never committed)
+.env
+.env.*
+!.env.example
+
+# build output
+dist/
+
+# run state and media artifacts (default to the external SSD in production)
+runs/
+renders/
+ready/
+
+# os
+.DS_Store

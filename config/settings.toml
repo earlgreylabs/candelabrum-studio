@@ -1,0 +1,52 @@
+# Candelabrum Studio defaults. Human-edited, validated with Zod at load.
+# Secrets (provider API keys) never live here; they go in a gitignored .env.
+
+[paths]
+# In production, `renders` and `ready` point at the external Thunderbolt SSD
+# (the internal disk fills in ~40-50 runs). Local relative defaults for dev.
+runs = "./runs"
+renders = "./renders"
+ready = "./ready"
+
+[providers]
+# Each name resolves to an adapter. `manual` is the ManualInbox fallback used
+# wherever only a free web tier exists; swapping to a paid API is config, not code.
+director = "claude"
+image = "manual"
+video = "manual"
+
+[targets]
+# masterFps is the archival interpolation target; the RIFE multiplier is derived
+# from it and the provider's source fps. Delivery caps are platform facts (constants).
+masterFps = 120
+pollIntervalSeconds = 15
+
+# Output profiles map orientation -> delivery size, fps cap, and safe-zone insets
+# (pixels of the delivery frame to keep key content clear of). 2026 platform guidance.
+[profiles.portrait]
+orientation = "portrait"
+aspect = "9:16"
+deliveryWidth = 1080
+deliveryHeight = 1920
+fpsCap = 60
+
+[profiles.portrait.safeZone]
+# TikTok: ~370px caption bar off bottom, ~180px action icons off right.
+top = 0
+right = 180
+bottom = 370
+left = 0
+
+[profiles.landscape]
+orientation = "landscape"
+aspect = "16:9"
+deliveryWidth = 1920
+deliveryHeight = 1080
+fpsCap = 60
+
+[profiles.landscape.safeZone]
+# Titles ~5% in from each edge.
+top = 54
+right = 96
+bottom = 54
+left = 96

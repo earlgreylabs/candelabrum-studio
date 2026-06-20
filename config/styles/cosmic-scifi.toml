@@ -1,0 +1,16 @@
+# A reusable style preset. Adding a look is adding a file; the concrete subject
+# and composition still vary per run (presets scaffold, they do not template).
+
+id = "cosmic-scifi"
+name = "Cosmic Sci-Fi"
+description = "Deep-space vistas, luminous nebulae, sleek lone vessels, vast scale. High contrast, cinematic, hyper-detailed, painterly realism."
+
+[prompt]
+# `{subject}` is filled by the director per run; the rest scaffolds the look.
+imageScaffold = "A {subject}, cinematic deep-space sci-fi, volumetric nebula light, intricate detail, high dynamic range, crisp focus, dramatic scale, painterly realism, 8k"
+motionScaffold = "Slow cinematic forward camera push; the {subject} holds steady while the cosmos drifts past; subtle nebula parallax; stable structure, no warping"
+negative = "blurry, low detail, melting structure, warped geometry, text, watermark, oversaturated"
+
+[caption]
+tiktok = "Short, punchy, 1-2 lines with a first-line hook. 3-5 niche hashtags (#scifi #spaceart #aiart)."
+instagram = "Evocative one-liner, slightly more descriptive. 8-12 mixed-reach hashtags. Keep clear of the caption bar."
