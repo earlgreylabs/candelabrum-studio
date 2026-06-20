@@ -24,6 +24,34 @@ demands it. The free local default stays `rife-ncnn-vulkan`.
 This is a statement of fact, not a preference to debate: the build targets the
 Mac-native path.
 
+## Storage is the real hardware bottleneck
+
+The target machine (M1 Max, 32 GB unified memory) is well suited to local RIFE
+interpolation, but its **free disk is the pipeline-breaking constraint** (~118 GB
+free of 460 GB at the time of evaluation). The output spec is the cause:
+
+- A flat **120 fps ProRes 422 HQ** master at 1080p runs ~110 MB/s, so a 5-second
+  master is **~550 MB**.
+- With the raw `.mp4` download, the base image, working files, and the export
+  package, a single run produces **~1.5 to 2.5 GB**.
+- After APFS overhead and swap (~30 GB), only ~80 GB is truly usable, so the disk
+  fills in **roughly 40 to 50 successful runs**, then macOS hits a "disk full"
+  wall.
+
+Two consequences, both load-bearing:
+
+- **An external Thunderbolt NVMe SSD (2 to 4 TB) is effectively required** for any
+  sustained use. `config/settings.toml` defaults the `renders/` and `ready/`
+  directories to it; the internal disk is for code and config only.
+- **The dashboard owns storage hygiene** (see [07-ui-ux.md](07-ui-ux.md)): a
+  persistent storage gauge (orange ≥ 80%, red ≥ 90%), one-click trash for rejected
+  runs, a purge for raw clips once the master is approved, and an auto-prune that
+  deletes `renders/raw/` the moment Gate B passes. Memory hygiene is paired with
+  this: the interpolation subprocess is torn down before the encode so the two
+  never contend for RAM or swap (see [02-architecture.md](02-architecture.md)).
+
+These are spec requirements, not aspirations.
+
 ## The "$0 versus automation" contradiction
 
 The draft contains two visions that cannot both be fully true at once:
@@ -112,16 +140,17 @@ the local **master**, from which the platform-facing outputs are derived:
 | ----------------------- | -------- | ---------------------------------------- |
 | `CLIP_LENGTH_SECONDS`   | `~4-5`   | raw generation length                    |
 | `SOURCE_FPS`            | `~24-30` | as returned by the video provider        |
-| `MASTER_FPS`            | `120`    | after local interpolation (archival)     |
-| `INTERPOLATION_FACTOR`  | `4`      | RIFE multiplier (the draft's `-n 4`)     |
+| `MASTER_FPS`            | `120`    | interpolation target (archival)          |
+| `INTERPOLATION_FACTOR`  | `4` (derived) | RIFE multiplier; ceil(MASTER_FPS / SOURCE_FPS) |
 | `DELIVERY_FPS`          | `60`     | platform display cap; the upload target  |
 | `DELIVERY_MAX_HEIGHT`   | `1080`   | platform display cap                     |
 | `POLL_INTERVAL_SECONDS` | `15`     | async video status polling cadence       |
 
-`MASTER_FPS` and `INTERPOLATION_FACTOR` are linked (30 x 4 = 120); the factor is
-chosen to hit the master target from whatever `SOURCE_FPS` the provider returns.
-Orientation, delivery size, and safe zone are carried by the run's `OutputProfile`,
-not hard-coded.
+`MASTER_FPS` is the authoritative target; `INTERPOLATION_FACTOR` is **derived**
+from it and the provider's `SOURCE_FPS` (ceil(MASTER_FPS / SOURCE_FPS)), so `4` is
+the typical value for a 30 fps source, not a fixed constant. A 24 fps source uses
+factor 5 (to ~120), not 4. Orientation, delivery size, and safe zone are carried
+by the run's `OutputProfile`, not hard-coded.
 
 Sources: [TikTok & Reels aspect-ratio guide, 2026](https://medium.com/@AlexanderErshov/tiktok-reels-aspect-ratio-guide-every-size-for-every-platform-in-2026-2bbf5d902dba),
 [TikTok video size guide](https://riverside.com/blog/tiktok-video-size),

@@ -68,7 +68,7 @@ and state model).
   (portrait 9:16 or landscape 16:9).
 - **Input:** the shot spec.
 - **Output:** base image plus the resolved seed, in the run directory.
-- **Automation:** auto where an image API is configured (for example Flux.1 via
+- **Automation:** auto where an image API is configured (for example FLUX.2 via
   fal, Replicate, Together, or ModelsLab). Manual fallback: the operator
   generates on a free tier (Tensor.art, SeaArt, a Hugging Face Space) and drops
   the file into the run's inbox; the manual inbox is itself an adapter.
@@ -144,12 +144,15 @@ earlier stage with a note). Nothing proceeds without an approval.
     (H.264 / AAC MP4, 1080p, <= 60 fps, key content inside the safe zone) for clips
     the operator posts as-is.
   - **B-roll handoff (opt-in):** an **editor project** (FCPXML, or a CapCut draft)
-    that references the master and caption, so the operator can intercut it with
-    their own footage and add trending audio in CapCut / Premiere / Resolve.
+    that references the **flat (ungraded) master** and caption, so the operator can
+    intercut it with their own footage and add trending audio in CapCut / Premiere
+    / Resolve. Any LUT travels as non-destructive metadata, not baked in.
 - The studio does **not** build a timeline editor. A **LUT and watermark are
-  optional per run** (off by default, applied at encode, for example a watermark on
-  a commission), so content is unbranded unless the operator opts in. **In v1 this
-  is the terminal state:** posting is manual from here.
+  optional per run** (off by default, for example a watermark on a commission), so
+  content is unbranded unless the operator opts in. Crucially, they are applied to
+  the **delivery encode only**: the ProRes master always stays flat and ungraded,
+  because baking a LUT into the mezzanine is destructive and stalls the hardware
+  encoder. **In v1 this is the terminal state:** posting is manual from here.
 
 ## 7. Publish: later phase
 

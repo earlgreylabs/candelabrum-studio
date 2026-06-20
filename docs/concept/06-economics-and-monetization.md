@@ -23,8 +23,8 @@ by the two cloud generations plus a small director-LLM spend.
 | Stage              | Free / manual route                 | Paid-API route (per video)                              |
 | ------------------ | ----------------------------------- | ------------------------------------------------------- |
 | Direct (LLM)       | Gemini free tier                    | ~$0.01 to $0.05                                         |
-| Image (Flux 1.1)   | web tier (Tensor.art, SeaArt), $0   | ~$0.04 each; ~$0.04 to $0.16 with retries               |
-| Animate (~5 s)     | Luma / Kling free credits, $0       | Kling ~$0.10/s -> ~$0.50; Runway ~$0.15/s -> ~$0.75; 1 to 2 tries -> $0.50 to $1.50 |
+| Image (FLUX.2)     | web tier (Tensor.art, SeaArt), $0   | ~$0.03/MP -> ~$0.06 each (a 9:16 frame ≈ 2 MP); ~$0.06 to $0.18 with retries |
+| Animate (~5 s)     | Luma / Kling free credits, $0       | Kling 2.5 Turbo ~$0.07/s -> ~$0.35; Runway ~$0.15/s -> ~$0.75; 1 to 2 tries -> $0.35 to $1.10 |
 | Interpolate (RIFE) | local GPU, $0                       | $0 (local)                                              |
 | Encode (ffmpeg)    | local, $0                           | $0 (local)                                              |
 
@@ -34,7 +34,7 @@ by the two cloud generations plus a small director-LLM spend.
   and your clicking time.
 - **Cheap-API tier (Flux + Kling):** roughly **$0.60 to $1.00** per finished video,
   fully automatable.
-- **Premium-API tier (Flux ultra + Runway Gen-4.5 + retries):** roughly **$1.20 to
+- **Premium-API tier (FLUX.2 [pro] + Runway Gen-4 + retries):** roughly **$1.20 to
   $2.00+**, best fidelity.
 
 **At volume (cheap tier, ~$1/video):** 1/day ≈ $30/month; 5/day ≈ $150/month for
@@ -120,8 +120,8 @@ Two consequences fall straight out:
    best, and is mostly closed to us.
 2. **Variety is compliance, not just craft.** The brief to keep content genuinely
    varied (different worlds, concepts, looks) is exactly what the "inauthentic /
-   templated / mass-produced" rules reward. The two-gate, human-in-the-loop design
-   and per-run distinct concepts are a real defence: this is curated, varied,
+   templated / mass-produced" rules reward. The three-gate (A, A.5, B),
+   human-in-the-loop design and per-run distinct concepts are a real defence: this is curated, varied,
    human-approved output, not a template farm. Lean into that.
 
 ## 4. Where the money actually is

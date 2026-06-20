@@ -119,33 +119,70 @@ and hand-editable. Everything above is generic baseline; do not hand-edit it. --
 
 ## Project Specifics
 
-> Empty in a fresh scaffold. Put your intent in `docs/concept/`, then run
-> `/sync-protocols`. Shape these to the stack: a web app, an ML pipeline, a game,
-> a batch system, and a monorepo do not look alike here.
-
 ### Descriptor
 
-[Run `/sync-protocols` to populate this based on your `docs/concept/`]
+Candelabrum Studio: a local-first, single-operator, human-directed digital-art
+engine on macOS / Apple Silicon. One TypeScript app orchestrates a six-stage
+pipeline (direct → image → animate → interpolate → caption → export) with three
+human gates (A concept, A.5 base image, B clip) in one local dashboard. v1 is
+locked to stages 1–6 plus the export package; auto-publishing (stage 7) is
+phase 2. Provider-agnostic via adapters; cheapest viable path per stage (a real
+API, or a `ManualInbox` adapter where only a free web tier exists).
 
 ### Toolchain
 
-| Action          | Command |
-| --------------- | ------- |
-| install         |         |
-| format          |         |
-| lint            |         |
-| typecheck       |         |
-| test            |         |
-| run / dev       |         |
-| build           |         |
-| package manager |         |
+| Action          | Command                                |
+| --------------- | -------------------------------------- |
+| install         | `bun install`                          |
+| format          | `bun run biome format --write .`       |
+| lint            | `bun run biome check .`                |
+| typecheck       | `bun run tsc --noEmit`                 |
+| test            | `bun test`                             |
+| run / dev       | `bun run dev` (dashboard); `bun run cli ...` (headless) |
+| build           | `bun run build`                        |
+| package manager | `bun`                                  |
 
 ### Validation gates
 
-[Run `/sync-protocols` to populate this based on your `docs/concept/`]
+In order, each must pass before a slice is done:
+
+1. `bun run biome format --write .` — clean.
+2. `bun run biome check .` — lint clean.
+3. `bun run tsc --noEmit` — no type errors (`strict` on).
+4. `bun test` — green.
+5. Exercise against reality: a real run, or a recorded provider fixture, not code
+   inspection alone.
 
 ### Stack-specific rules
 
-[Run `/sync-protocols` to populate this based on your `docs/concept/`]
+- One TypeScript app (Bun + Hono server, React / Vite dashboard) sharing one
+  `core`. No Python. The only spawned processes are `rife-ncnn-vulkan` and
+  `ffmpeg`.
+- Every provider (LLM, image, video, export, publish) sits behind a small
+  interface; swapping one is config, not code. Manual steps are `ManualInbox`
+  adapters satisfying the same interface; never branch the pipeline on
+  auto-versus-manual.
+- Director LLM via the Vercel AI SDK provider abstraction (Claude default, Gemini
+  a config swap).
+- State is JSON on disk: `runs/<id>/metadata.json`, persisted after every stage
+  transition; the `status` enum is the single source of run position and drives
+  resume. No second progress flag.
+- Colour grading is delivery-only: the ProRes master stays flat / ungraded; the
+  LUT and watermark apply to the H.264 delivery encode; the FCPXML references the
+  ungraded master with the LUT as non-destructive metadata.
+- Subprocess hygiene: run one heavy subprocess at a time; fully tear down `rife`
+  (release its memory) before spawning `ffmpeg`.
+- Storage: `renders/` and `ready/` default to the external SSD; the dashboard owns
+  storage hygiene (gauge, trash, raw-clip purge, auto-prune on Gate B).
+- Config is TOML validated with Zod at load; secrets live in a gitignored `.env`,
+  never under `config/`, never committed.
+- Output: portrait (9:16) default and landscape (16:9) via the per-run
+  `OutputProfile`; platform sizes, fps caps, and safe zones are named constants or
+  profile fields, never magic numbers.
+- TypeScript `strict` on; no `any` / `@ts-ignore` to silence the checker. Imports
+  absolute via the `@/` alias; relative only within a single stage module.
+- Target is macOS / Apple Silicon; interpolation via MoltenVK on Metal, with
+  pass-through (no interpolation) when no usable GPU is present. No `minterpolate`.
+- AI-content labelling is mandatory at publish (phase 2), per platform.
 
 <!-- END PROJECT SPECIFICS -->

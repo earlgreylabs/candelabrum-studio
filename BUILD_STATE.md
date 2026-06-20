@@ -16,14 +16,24 @@ Rules:
 
 ## Now
 
-- Milestone:
-- Last verified checkpoint:   (commit + what is green)
-- Next step (start here):
-- Blockers:
+- Milestone: Slice 1 — Skeleton (config + run model + on-disk state + CLI + resume).
+- Last verified checkpoint: none yet (greenfield; `docs/concept/` reconciled, protocols synced).
+- Next step (start here): scaffold the Bun + TypeScript project (`package.json`,
+  `tsconfig.json` with the `@/` path alias, Biome, `bun test`), then implement
+  config loading (TOML + Zod, including `OutputProfile`s), the `cosmic-scifi` style
+  preset, the `Run` model and on-disk JSON state store, the `bun run cli`
+  entrypoint, and resume-from-`status`. Verify by creating, persisting, and
+  resuming a run with stubbed stages.
+- Blockers: none. (An external SSD is recommended before real renders; not needed
+  for slice 1.)
 
 ## Decisions
 
 <!-- one dated line each: "YYYY-MM-DD: chose X over Y because Z" -->
+
+- 2026-06-20: stack is TypeScript-unified (Bun + Hono + React/Vite, Vercel AI SDK), no Python — TS provider SDKs are now first-class, dropping the polyglot split.
+- 2026-06-20: UI is dark near-black with a single candle-gold accent from the logo; tokens in `DESIGN.md`.
+- 2026-06-20: removed `99-evaluation.md` — its findings (delivery-only LUT, external SSD, storage UX, VRAM teardown) are folded into the canon docs.
 
 ## Session log
 

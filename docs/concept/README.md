@@ -16,9 +16,9 @@ resume from `prompt.md`.
   for, the phased-hybrid posture, and what "done" looks like.
 - [01-pipeline.md](01-pipeline.md): the pipeline stages and the human gates,
   with each stage's input, output, and automation.
-- [02-architecture.md](02-architecture.md): orchestrator plus provider-agnostic
-  adapters, the run and state model, async video handling, the review surface, and
-  the directory layout.
+- [02-architecture.md](02-architecture.md): the one-TypeScript-app shape,
+  provider-agnostic adapters, the run and state model, async video handling, the
+  colour-grading and subprocess rules, the review surface, and the directory layout.
 - [03-constraints-and-cost.md](03-constraints-and-cost.md): the macOS reality, why
   "$0 and fully automated" is a contradiction, app-review-gated publishing, terms
   and account risk, output constants, and the cost model.
@@ -29,8 +29,12 @@ resume from `prompt.md`.
 - [06-economics-and-monetization.md](06-economics-and-monetization.md): what a
   video costs to make, how the platforms (TikTok, Instagram, YouTube Shorts) pay,
   the AI-content eligibility realities, and the recommended revenue strategy.
-- [99-evaluation.md](99-evaluation.md): the expert-panel review that shaped the
-  B-roll positioning, Gate A.5, the unified dashboard, and the editor handoff.
+- [07-ui-ux.md](07-ui-ux.md): the single-pane-of-glass interaction model, the
+  dashboard wireframes and gate-by-gate user journey, the dark / candle-gold design
+  system (the source for `DESIGN.md`), and the storage-management UX.
+- [08-tech-stack.md](08-tech-stack.md): the TypeScript-unified stack (Bun, Hono,
+  React, the AI SDK), the in-process stage model, the local media binaries, the
+  pinned version matrix, and the containerisation analysis.
 
 ## Decisions settled at kickoff
 
@@ -52,10 +56,17 @@ resume from `prompt.md`.
   run; a local ~120 fps **ProRes master** (mezzanine), plus an optional 1080p / 60
   fps delivery encode for posting as-is and an FCPXML project for the editor
   handoff. No `minterpolate` fallback (pass-through if no GPU).
-- **Platform:** macOS / Apple Silicon. Local interpolation via `rife-ncnn-vulkan`
-  on Metal; Flowframes (Windows only) is out.
-- **Director LLM:** Claude by default, abstracted behind an adapter (Gemini
-  swappable).
+- **Platform:** macOS / Apple Silicon (M1 Max). Local interpolation via
+  `rife-ncnn-vulkan` on Metal; Flowframes (Windows only) is out. An external
+  Thunderbolt NVMe SSD holds `renders/` and `ready/`: the ProRes masters fill the
+  internal disk in ~40 to 50 runs (see
+  [03-constraints-and-cost.md](03-constraints-and-cost.md)).
+- **Stack:** one **TypeScript** application: a Bun + Hono server and a React / Vite
+  dashboard sharing one `core`, with the director on the Vercel AI SDK. The only
+  spawned processes are the local media binaries (`rife-ncnn-vulkan`, `ffmpeg`); no
+  Python. See [08-tech-stack.md](08-tech-stack.md).
+- **Director LLM:** Claude by default, abstracted behind the AI SDK's provider
+  layer (Gemini swappable).
 - **Identity & ownership:** operated under **Earl Grey Labs** (`earlgreylabs` on
   GitHub). The studio logo (`docs/assets/candelabrum-studio.png`) is the studio's
   outward identity only, with no connection to the video content; the operator
