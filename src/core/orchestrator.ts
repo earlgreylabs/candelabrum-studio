@@ -7,7 +7,7 @@
 
 import type { PipelineContext } from "@/core/pipeline";
 import { isGate, isTerminal, NEXT_STATUS, type Run, transition } from "@/core/run";
-import { STAGES } from "@/stages/stubs";
+import { STAGES } from "@/stages";
 
 /**
  * Run stages until the run reaches a gate (awaiting the operator) or a terminal

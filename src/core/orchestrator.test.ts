@@ -5,8 +5,35 @@ import { join } from "node:path";
 import { loadSettings, loadStyle, type Settings, type Style } from "@/core/config";
 import { advance, approve, reject } from "@/core/orchestrator";
 import type { PipelineContext } from "@/core/pipeline";
+import type { DirectorLLM } from "@/core/providers";
 import { createRun, type Run, transition } from "@/core/run";
 import { RunStore } from "@/core/store";
+
+// A deterministic director, so the pipeline is exercised without an API call.
+const fakeDirector: DirectorLLM = {
+  async proposeConcepts({ count }) {
+    return Array.from({ length: count }, (_, i) => ({
+      title: `Concept ${i + 1}`,
+      summary: "a lone vessel adrift past a luminous nebula",
+      subject: "lone vessel",
+    }));
+  },
+  async revise(concept) {
+    return concept;
+  },
+  async finalise(concept, orientation, style) {
+    return {
+      imagePrompt: `A ${concept.subject} adrift past a luminous nebula`,
+      motionPrompt: "slow forward camera push",
+      captionDraft: "Drifting through the deep.",
+      style: style?.id ?? "none",
+      orientation,
+    };
+  },
+  async caption() {
+    return "Drifting through the deep. #scifi";
+  },
+};
 
 describe("orchestrator", () => {
   let root: string;
@@ -28,7 +55,7 @@ describe("orchestrator", () => {
     };
     style = await loadStyle("./config", "cosmic-scifi");
     store = new RunStore(settings.paths.runs);
-    ctx = { settings, store, style, log: () => {} };
+    ctx = { settings, store, style, director: fakeDirector, log: () => {} };
   });
 
   afterEach(async () => {
@@ -71,7 +98,13 @@ describe("orchestrator", () => {
 
     // A new store + context over the same directory stands in for a fresh process.
     const store2 = new RunStore(settings.paths.runs);
-    const ctx2: PipelineContext = { settings, store: store2, style, log: () => {} };
+    const ctx2: PipelineContext = {
+      settings,
+      store: store2,
+      style,
+      director: fakeDirector,
+      log: () => {},
+    };
     const resumed = await store2.load(run.id);
     expect(resumed.status).toBe("gate_a5");
 

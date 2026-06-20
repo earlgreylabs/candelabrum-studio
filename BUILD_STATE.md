@@ -16,20 +16,24 @@ Rules:
 
 ## Now
 
-- Milestone: Slice 1 — Skeleton: DONE + verified. Next: Slice 2 — adapter
-  interfaces + the first real stage (Director).
-- Last verified checkpoint: Slice 1 skeleton. All 5 gates green (format, lint,
-  `tsc`, `bun test` = 16 pass), plus a real CLI run driven new→ready across
-  separate processes (cross-process resume) + a reject. Artifacts land on disk
-  (`runs/<id>/`, `renders/{raw,master}/`, `ready/<id>/`); `status` drives resume.
-- Next step (start here): define the adapter interfaces in `core`
-  (`DirectorLLM`, `ImageProvider`, `VideoProvider`, `Exporter`) and a provider
-  registry keyed by the `settings.providers.*` names; implement the **Director**
-  stage for real via the Vercel AI SDK (Claude default, model pinned at impl) so
-  Gate A produces a real `ShotSpec`, and a `ManualInbox` image adapter. Keep the
-  other stages stubbed. Verify with a recorded provider fixture (no live spend in
-  the gate) plus the existing CLI flow.
+- Milestone: Slice 2 — Director stage: DONE + verified. Next: Slice 3 — Image
+  stage (`ImageProvider` interface + `ManualInbox` adapter + real image stage).
+- Last verified checkpoint: Slice 2. 4 gates green + 19 tests (3 are
+  recorded-fixture `MockLanguageModelV3` adapter tests; orchestrator drives the
+  pipeline through a fake `DirectorLLM`). Keyless CLI exercise: `cli new` reaches
+  the real AI SDK adapter and fails cleanly at the missing-key boundary (no
+  request sent); the run persists at `directing`, so it is resumable.
+- Next step (start here): add `ImageProvider` to `core/providers.ts` (`generate
+  (shotSpec) -> ImageArtifact {path, seed, provider, costUsd}`); implement a
+  `ManualInbox` image adapter (shows the operator the prompt + a run inbox dir,
+  watches for the dropped file, returns it) and a real `image` stage using
+  `ctx.image`; add `image` to `PipelineContext` + the resolver. Keep
+  animate/interpolate/caption/export stubbed. Verify: gates + a temp-dir test
+  that drops a file into the inbox and asserts the adapter returns it; CLI
+  `new`/`resume` still reach Gate A.5 with a real image artifact (manual route,
+  no spend).
 - Blockers: none. (External SSD recommended before real renders; not needed yet.)
+  A real director run needs `ANTHROPIC_API_KEY` in a gitignored `.env`.
 
 ## Decisions
 
@@ -40,12 +44,15 @@ Rules:
 - 2026-06-20: removed `99-evaluation.md` — its findings (delivery-only LUT, external SSD, storage UX, VRAM teardown) are folded into the canon docs.
 - 2026-06-20: TOML via `smol-toml` (typed `parse`), not Bun's native TOML import — avoids fighting dynamic-import typing under `verbatimModuleSyntax`, no `ts-ignore`.
 - 2026-06-20: `RunStatus` is one enum over 6 stages + 3 gates + 3 terminal states; orchestrator owns transitions, stages only produce artifacts; resume = `store.load` + `advance` (no separate progress flag).
+- 2026-06-20: Director via Vercel AI SDK `generateObject` + `@ai-sdk/anthropic`, model `claude-opus-4-8` pinned in `providers/director.ts`; adapter takes an injectable `LanguageModel` (mockable, no spend). Interfaces in `core/`, impls in `providers/`, injected into `PipelineContext`.
+- 2026-06-20: only `DirectorLLM` defined now; `ImageProvider`/`VideoProvider`/`Exporter` land with their stages, not speculatively up front.
 
 ## Session log
 
 <!-- one terse line per finished slice: "YYYY-MM-DD: slice N done + verified" -->
 
 - 2026-06-20: slice 1 (skeleton) done + verified — config/run/store/orchestrator/CLI, stubbed stages, 16 tests, real new→ready run across processes.
+- 2026-06-20: slice 2 (director) done + verified — `DirectorLLM` + Claude adapter (AI SDK), real `direct` stage, stage registry, injected context; 19 tests incl. 3 mock-model fixtures; keyless CLI reaches adapter, run persists at `directing`.
 
 ## Archive
 

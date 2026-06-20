@@ -5,12 +5,15 @@
  */
 
 import type { Settings, Style } from "@/core/config";
+import type { DirectorLLM } from "@/core/providers";
 import type { Run } from "@/core/run";
 import type { RunStore } from "@/core/store";
 
 export interface PipelineContext {
   settings: Settings;
   store: RunStore;
+  /** The creative director adapter, used by the direct stage. */
+  director: DirectorLLM;
   /** The active style preset, if the run was created with one. */
   style?: Style;
   log: (message: string) => void;
