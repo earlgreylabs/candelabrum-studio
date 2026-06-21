@@ -23,6 +23,7 @@ export interface PipelineContext {
   /** The active style preset, if the run was created with one. */
   style?: Style;
   log: (message: string) => void;
+  notify: (title: string, message: string) => void;
 }
 
 /**

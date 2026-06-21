@@ -18,7 +18,6 @@ const DIRECTOR_SYSTEM =
   "and write precise generation prompts. Favour forward camera travel and stable, " +
   "non-warping structure. Keep every concept different from the recent history.";
 
-
 function styleBrief(style?: Style): string {
   if (!style) {
     return "No fixed style preset; choose an evocative direction.";

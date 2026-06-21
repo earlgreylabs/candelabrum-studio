@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams, Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import type { Run } from "@/core/run";
 
 export function RunDetail() {
@@ -10,6 +10,7 @@ export function RunDetail() {
   const [loading, setLoading] = useState<boolean>(true);
   const [actionLoading, setActionLoading] = useState<boolean>(false);
   const [reviseInstruction, setReviseInstruction] = useState("");
+  const [editedCaption, setEditedCaption] = useState("");
 
   const fetchRun = () => {
     fetch(`/api/runs/${id}`)
@@ -19,6 +20,9 @@ export function RunDetail() {
       })
       .then((data) => {
         setRun(data.run);
+        if (data.run.shotSpec?.captionDraft && !editedCaption) {
+          setEditedCaption(data.run.shotSpec.captionDraft);
+        }
         setLoading(false);
       })
       .catch((err) => {
@@ -35,7 +39,16 @@ export function RunDetail() {
     if (!run) return;
     setActionLoading(true);
     try {
-      const res = await fetch(`/api/runs/${run.id}/${action}`, { method: "POST" });
+      const body =
+        action === "advance" && run.status === "gate_b"
+          ? JSON.stringify({ caption: editedCaption })
+          : undefined;
+
+      const res = await fetch(`/api/runs/${run.id}/${action}`, {
+        method: "POST",
+        headers: body ? { "Content-Type": "application/json" } : undefined,
+        body,
+      });
       if (!res.ok) {
         const data = await res.json();
         throw new Error(data.error || "Action failed");
@@ -185,7 +198,16 @@ export function RunDetail() {
               </div>
               <div>
                 <h4 className="text-sm text-secondary mb-1">Caption Draft</h4>
-                <p className="text-sm">{run.shotSpec.captionDraft}</p>
+                {run.status === "gate_b" ? (
+                  <textarea
+                    className="w-full bg-background border border-border rounded p-2 text-sm focus:border-accent outline-none transition-colors"
+                    rows={3}
+                    value={editedCaption}
+                    onChange={(e) => setEditedCaption(e.target.value)}
+                  />
+                ) : (
+                  <p className="text-sm">{run.shotSpec.captionDraft}</p>
+                )}
               </div>
             </div>
           )}

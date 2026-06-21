@@ -1,10 +1,10 @@
-import { expect, test, describe, beforeAll, afterAll } from "bun:test";
-import { resolve } from "node:path";
+import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { rm } from "node:fs/promises";
-import app from "./index";
+import { resolve } from "node:path";
+import { loadSettings } from "@/core/config";
 import { createRun, transition } from "@/core/run";
 import { RunStore } from "@/core/store";
-import { loadSettings } from "@/core/config";
+import app from "./index";
 
 const TEST_RUNS_DIR = resolve(process.cwd(), "config", "runs");
 
@@ -24,7 +24,7 @@ describe("API Endpoints", () => {
   test("POST /api/runs/:id/reject", async () => {
     const settings = await loadSettings(resolve(process.cwd(), "config"));
     const store = new RunStore(settings.paths.runs);
-    
+
     // Create a mock run and persist it in gate_a
     const run = createRun(settings, { orientation: "portrait" });
     transition(run, "gate_a", "test");
@@ -37,9 +37,9 @@ describe("API Endpoints", () => {
       body: JSON.stringify({ note: "rejected concept via API" }),
     });
     const res = await app.fetch(req);
-    
+
     expect(res.status).toBe(200);
-    const data = await res.json() as any;
+    const data = (await res.json()) as any;
     expect(data.run).toBeDefined();
     expect(data.run.id).toBe(run.id);
     expect(data.run.status).toBe("rejected");

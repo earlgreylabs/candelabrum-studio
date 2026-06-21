@@ -9,8 +9,7 @@
 
 import type { Style } from "@/core/config";
 import type { Orientation } from "@/core/constants";
-import type { Concept, ShotSpec } from "@/core/run";
-
+import type { Concept, Run, ShotSpec } from "@/core/run";
 
 export type Platform = "tiktok" | "instagram";
 
@@ -65,10 +64,5 @@ export interface ExportPackage {
 }
 
 export interface Exporter {
-  package(
-    runId: string,
-    readyDir: string,
-    spec: ShotSpec,
-    masterClipPath: string,
-  ): Promise<ExportPackage>;
+  package(run: Run, readyDir: string): Promise<ExportPackage>;
 }

@@ -1,17 +1,22 @@
+import { readFile } from "node:fs/promises";
+import { resolve } from "node:path";
 import { Hono } from "hono";
 import { serveStatic } from "hono/bun";
 import { streamSSE } from "hono/streaming";
 import { loadSettings, loadStyle, type Settings, type Style } from "@/core/config";
-import { RunStore } from "@/core/store";
-import { approve, reject as rejectRun, revise as reviseRun, regenerate as regenerateRun } from "@/core/orchestrator";
+import {
+  approve,
+  regenerate as regenerateRun,
+  reject as rejectRun,
+  revise as reviseRun,
+} from "@/core/orchestrator";
 import type { PipelineContext } from "@/core/pipeline";
 import type { Run } from "@/core/run";
+import { RunStore } from "@/core/store";
 import { resolveDirector } from "@/providers/director";
 import { resolveExporter } from "@/providers/export";
 import { resolveImage } from "@/providers/image";
 import { resolveVideo } from "@/providers/video";
-import { resolve } from "node:path";
-import { readFile } from "node:fs/promises";
 
 const app = new Hono();
 const configDir = resolve(process.cwd(), "config");
@@ -36,6 +41,13 @@ async function buildContext(
     export: exportProvider,
     style,
     log: (message) => console.log(`[Dashboard API] ${message}`),
+    notify: (title, message) => {
+      // Background spawn the notification so it doesn't block
+      Bun.spawn(["osascript", "-e", `display notification "${message}" with title "${title}"`], {
+        stdout: "ignore",
+        stderr: "ignore",
+      });
+    },
   };
 }
 
@@ -72,12 +84,14 @@ app.post("/api/runs/:id/advance", async (c) => {
     const ctx = await buildContext(settings, store, run);
     // Parse optional note from body if any
     let note: string | undefined;
+    let caption: string | undefined;
     if (c.req.header("content-type")?.includes("application/json")) {
       const body = await c.req.json();
       note = body.note;
+      caption = body.caption;
     }
 
-    const updated = await approve(run, ctx, note);
+    const updated = await approve(run, ctx, note, caption);
     return c.json({ run: updated });
   } catch (err) {
     console.error(`Failed to advance run ${id}:`, err);
@@ -115,7 +129,7 @@ app.post("/api/runs/:id/revise", async (c) => {
   try {
     const run = await store.load(id);
     const ctx = await buildContext(settings, store, run);
-    
+
     let instruction = "";
     if (c.req.header("content-type")?.includes("application/json")) {
       const body = await c.req.json();

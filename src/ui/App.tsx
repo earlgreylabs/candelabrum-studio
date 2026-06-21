@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { RunList } from "./RunList";
-import { RunDetail } from "./RunDetail";
+import { BrowserRouter, Route, Routes } from "react-router-dom";
 import type { Run } from "@/core/run";
+import { RunDetail } from "./RunDetail";
+import { RunList } from "./RunList";
 
 export function App() {
   const [runs, setRuns] = useState<Run[]>([]);

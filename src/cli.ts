@@ -65,6 +65,7 @@ function buildContext(
     export: exportProvider,
     style,
     log: (message) => console.log(message),
+    notify: (title, message) => console.log(`[Notify] ${title}: ${message}`),
   };
 }
 

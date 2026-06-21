@@ -1,23 +1,21 @@
 import { copyFile, mkdir } from "node:fs/promises";
 import { resolve } from "node:path";
 import type { Exporter, ExportPackage } from "@/core/providers";
-import type { ShotSpec } from "@/core/run";
+import type { Run } from "@/core/run";
 
 export class FfmpegExporter implements Exporter {
-  async package(
-    runId: string,
-    readyDir: string,
-    spec: ShotSpec,
-    masterClipPath: string,
-  ): Promise<ExportPackage> {
-    const outDir = resolve(readyDir, runId);
+  async package(run: Run, readyDir: string): Promise<ExportPackage> {
+    const outDir = resolve(readyDir, run.id);
     await mkdir(outDir, { recursive: true });
 
-    await Bun.write(resolve(outDir, "caption.txt"), spec.captionDraft ?? "");
-    await Bun.write(
-      resolve(outDir, "manifest.json"),
-      JSON.stringify({ id: runId, orientation: spec.orientation, style: spec.style }, null, 2),
-    );
+    const spec = run.shotSpec;
+    await Bun.write(resolve(outDir, "caption.txt"), spec?.captionDraft ?? "");
+    await Bun.write(resolve(outDir, "metadata.json"), JSON.stringify(run, null, 2));
+
+    const masterClipPath = run.artifacts.masterClip;
+    if (!masterClipPath) {
+      throw new Error(`[FfmpegExporter] No master clip found in run ${run.id}`);
+    }
 
     const ext = masterClipPath.substring(masterClipPath.lastIndexOf("."));
     const dummyMaster = resolve(outDir, `master${ext}`);

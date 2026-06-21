@@ -29,15 +29,30 @@ export async function advance(run: Run, ctx: PipelineContext): Promise<Run> {
     transition(run, next, "stage");
     await ctx.store.save(run);
   }
+
+  if (isGate(run.status)) {
+    ctx.notify("Action Required", `Run ${run.id} is waiting at ${run.status.replace("_", " ")}`);
+  }
+
   return run;
 }
 
 /** Pass the current gate, then advance to the next gate or terminal state. */
-export async function approve(run: Run, ctx: PipelineContext, note?: string): Promise<Run> {
+export async function approve(
+  run: Run,
+  ctx: PipelineContext,
+  note?: string,
+  caption?: string,
+): Promise<Run> {
   if (!isGate(run.status)) {
     throw new Error(`run ${run.id} is not at a gate (status: ${run.status})`);
   }
-  
+
+  // If we are at Gate B, we can optionally override the caption draft
+  if (run.status === "gate_b" && caption && run.shotSpec) {
+    run.shotSpec.captionDraft = caption;
+  }
+
   // If we are at Gate A, finalise the concept into a shot spec before proceeding
   if (run.status === "gate_a") {
     if (!run.concept) {
@@ -65,7 +80,7 @@ export async function revise(run: Run, ctx: PipelineContext, instruction: string
   if (!run.concept) {
     throw new Error(`run ${run.id} has no concept to revise`);
   }
-  
+
   ctx.log(`Revise concept: ${instruction}`);
   run.concept = await ctx.director.revise(run.concept, instruction);
   run.events.push({
@@ -73,7 +88,7 @@ export async function revise(run: Run, ctx: PipelineContext, instruction: string
     type: "operator",
     note: `revised concept: ${instruction}`,
   });
-  
+
   await ctx.store.save(run);
   return run;
 }
@@ -92,7 +107,7 @@ export async function regenerate(run: Run, ctx: PipelineContext): Promise<Run> {
   } else {
     throw new Error(`regenerate is only valid at gate_a5 or gate_b, but run is at ${run.status}`);
   }
-  
+
   await ctx.store.save(run);
   return advance(run, ctx);
 }
