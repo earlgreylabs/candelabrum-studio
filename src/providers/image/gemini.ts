@@ -4,6 +4,7 @@ import { generateText, type LanguageModel } from "ai";
 import type { Orientation } from "@/core/constants";
 import type { ImageArtifact, ImageProvider } from "@/core/providers";
 import type { ShotSpec } from "@/core/run";
+import { modelIdOf } from "@/providers/model-id";
 
 // Gemini image models bill per output token (~1290 tokens per image); this is a
 // rough estimate for cost tracking, since exact billing is not returned in the
@@ -52,6 +53,7 @@ export class GeminiImageProvider implements ImageProvider {
       path: destPath,
       seed: spec.seedHint,
       provider: "gemini",
+      model: modelIdOf(this.model),
       costUsd: ESTIMATED_COST_USD,
     };
   }

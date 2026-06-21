@@ -50,6 +50,7 @@ export class ManualInboxImageProvider implements ImageProvider {
           path: destPath,
           seed: spec.seedHint,
           provider: "manual",
+          model: "manual",
           costUsd: 0,
         };
       }

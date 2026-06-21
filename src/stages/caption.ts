@@ -11,5 +11,10 @@ export const caption: Stage = async (run, ctx) => {
   const finalCaption = await ctx.director.caption(run.shotSpec, platform);
 
   run.shotSpec.captionDraft = finalCaption;
-  run.cost.push({ stage: "caption", provider: ctx.settings.providers.director, amountUsd: 0 });
+  run.cost.push({
+    stage: "caption",
+    provider: ctx.settings.providers.director,
+    model: ctx.director.modelId,
+    amountUsd: 0,
+  });
 };

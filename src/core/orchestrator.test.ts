@@ -11,6 +11,7 @@ import { RunStore } from "@/core/store";
 
 // A deterministic director, so the pipeline is exercised without an API call.
 const fakeDirector: DirectorLLM = {
+  modelId: "fake-director",
   async proposeConcepts({ count }) {
     return Array.from({ length: count }, (_, i) => ({
       title: `Concept ${i + 1}`,
@@ -39,7 +40,7 @@ const fakeImage: ImageProvider = {
   async generate(runId, runDir) {
     const path = join(runDir, "image.placeholder.png");
     await Bun.write(path, `stub base image for ${runId}`);
-    return { path, seed: 42, provider: "fake-image", costUsd: 0 };
+    return { path, seed: 42, provider: "fake-image", model: "fake-image", costUsd: 0 };
   },
 };
 
@@ -47,7 +48,7 @@ const fakeVideo: VideoProvider = {
   async animate(runId, renderDir) {
     const path = join(renderDir, `${runId}.placeholder.mp4`);
     await Bun.write(path, `stub raw video for ${runId}`);
-    return { path, provider: "fake-video", costUsd: 0 };
+    return { path, provider: "fake-video", model: "fake-video", costUsd: 0 };
   },
 };
 

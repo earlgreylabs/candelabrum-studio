@@ -66,6 +66,13 @@ export async function passGate(
     run.shotSpec = await ctx.director.finalise(run.concept, run.profile.orientation, ctx.style);
     // Concept is no longer needed after finalisation
     run.concept = undefined;
+    // "Refine text": the director turns the concept into the shot spec prompts.
+    run.cost.push({
+      stage: "finalise",
+      provider: ctx.settings.providers.director,
+      model: ctx.director.modelId,
+      amountUsd: 0,
+    });
   }
 
   const next = NEXT_STATUS[run.status];

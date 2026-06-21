@@ -94,6 +94,10 @@ export type RunEvent = z.infer<typeof runEventSchema>;
 const costEntrySchema = z.object({
   stage: z.string(),
   provider: z.string(),
+  // The specific model / tool used for the step (e.g. "claude-opus-4-8",
+  // "gemini-3.1-flash-image", "veo-3.0-fast-generate-001", "ffmpeg"). Optional so
+  // runs created before model tracking still load.
+  model: z.string().optional(),
   amountUsd: z.number(),
 });
 

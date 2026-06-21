@@ -18,7 +18,12 @@ export const interpolate: Stage = async (run, ctx) => {
     ctx.log(`[Interpolate] rife-ncnn-vulkan not found, passing through raw clip.`);
     await copyFile(run.artifacts.rawClip, masterClipPath);
     run.artifacts.masterClip = masterClipPath;
-    run.cost.push({ stage: "interpolate", provider: "pass-through", amountUsd: 0 });
+    run.cost.push({
+      stage: "interpolate",
+      provider: "pass-through",
+      model: "pass-through",
+      amountUsd: 0,
+    });
     return;
   }
 
@@ -30,5 +35,10 @@ export const interpolate: Stage = async (run, ctx) => {
 
   await copyFile(run.artifacts.rawClip, masterClipPath);
   run.artifacts.masterClip = masterClipPath;
-  run.cost.push({ stage: "interpolate", provider: "rife-ncnn-vulkan", amountUsd: 0 });
+  run.cost.push({
+    stage: "interpolate",
+    provider: "rife-ncnn-vulkan",
+    model: "rife-ncnn-vulkan",
+    amountUsd: 0,
+  });
 };

@@ -4,6 +4,7 @@ import { generateImage, type ImageModel } from "ai";
 import type { Orientation } from "@/core/constants";
 import type { ImageArtifact, ImageProvider } from "@/core/providers";
 import type { ShotSpec } from "@/core/run";
+import { modelIdOf } from "@/providers/model-id";
 
 // FLUX is billed per megapixel and a 9:16 frame is ~2 MP; this is a rough
 // estimate for cost tracking, since fal (via the AI SDK) does not return actual
@@ -45,6 +46,7 @@ export class FalImageProvider implements ImageProvider {
       path: destPath,
       seed: spec.seedHint,
       provider: "fal",
+      model: modelIdOf(this.model),
       costUsd: ESTIMATED_COST_USD,
     };
   }

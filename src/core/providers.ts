@@ -27,6 +27,8 @@ export interface ProposeConceptsInput {
  * abstraction, so Claude-versus-Gemini is a config swap, not a code change.
  */
 export interface DirectorLLM {
+  /** The model id driving the director's LLM steps, for cost tracking. */
+  readonly modelId: string;
   proposeConcepts(input: ProposeConceptsInput): Promise<Concept[]>;
   revise(concept: Concept, instruction: string): Promise<Concept>;
   finalise(concept: Concept, orientation: Orientation, style?: Style): Promise<ShotSpec>;
@@ -37,6 +39,7 @@ export interface ImageArtifact {
   path: string;
   seed: number | undefined;
   provider: string;
+  model: string;
   costUsd: number;
 }
 
@@ -47,6 +50,7 @@ export interface ImageProvider {
 export interface VideoArtifact {
   path: string;
   provider: string;
+  model: string;
   costUsd: number;
 }
 

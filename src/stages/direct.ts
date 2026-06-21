@@ -19,5 +19,10 @@ export const direct: Stage = async (run, ctx) => {
     throw new Error("director proposed no concepts");
   }
   run.concept = chosen;
-  run.cost.push({ stage: "direct", provider: ctx.settings.providers.director, amountUsd: 0 });
+  run.cost.push({
+    stage: "direct",
+    provider: ctx.settings.providers.director,
+    model: ctx.director.modelId,
+    amountUsd: 0,
+  });
 };

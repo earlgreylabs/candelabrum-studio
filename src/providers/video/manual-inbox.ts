@@ -50,6 +50,7 @@ export class ManualInboxVideoProvider implements VideoProvider {
         return {
           path: destPath,
           provider: "manual",
+          model: "manual",
           costUsd: 0,
         };
       }

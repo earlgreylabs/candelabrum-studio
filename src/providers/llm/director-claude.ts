@@ -11,6 +11,7 @@ import type { Style } from "@/core/config";
 import type { Orientation } from "@/core/constants";
 import type { DirectorLLM, Platform, ProposeConceptsInput } from "@/core/providers";
 import { type Concept, conceptSchema, type ShotSpec, shotSpecSchema } from "@/core/run";
+import { modelIdOf } from "@/providers/model-id";
 
 const DIRECTOR_SYSTEM =
   "You are the creative director of a digital-art studio that produces short, " +
@@ -27,6 +28,7 @@ function styleBrief(style?: Style): string {
 
 export function createClaudeDirector(model: LanguageModel): DirectorLLM {
   return {
+    modelId: modelIdOf(model),
     async proposeConcepts({
       count,
       style,

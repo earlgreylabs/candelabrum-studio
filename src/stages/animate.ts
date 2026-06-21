@@ -24,6 +24,7 @@ export const animate: Stage = async (run, ctx) => {
   run.cost.push({
     stage: "animate",
     provider: artifact.provider,
+    model: artifact.model,
     amountUsd: artifact.costUsd,
   });
 };
