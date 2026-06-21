@@ -13,7 +13,7 @@ ready = "./ready"
 # wherever only a free web tier exists; swapping to a paid API is config, not code.
 director = "claude"
 image = "gemini" # Nano Banana (Gemini) image gen. Alternatives: "fal" (FLUX), "manual" (drop a file).
-video = "manual"
+video = "veo" # Google Veo (image-to-video). Alternative: "manual" (drop a clip). Expensive per clip.
 
 [targets]
 # masterFps is the archival interpolation target; the RIFE multiplier is derived
