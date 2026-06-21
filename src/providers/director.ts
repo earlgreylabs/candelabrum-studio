@@ -7,14 +7,18 @@
 
 import { anthropic } from "@ai-sdk/anthropic";
 import type { Settings } from "@/core/config";
+import { ProviderRegistry } from "@/core/factory";
 import type { DirectorLLM } from "@/core/providers";
 import { createClaudeDirector } from "@/providers/llm/director-claude";
 
-export const DIRECTOR_MODEL_ID = "claude-opus-4-8";
+export const directorRegistry = new ProviderRegistry<DirectorLLM>("director");
+
+directorRegistry.register("claude", () => {
+  // Read model ID from environment, fallback to standing stack preference
+  const modelId = process.env.DIRECTOR_MODEL || "claude-opus-4-8";
+  return createClaudeDirector(anthropic(modelId));
+});
 
 export function resolveDirector(settings: Settings): DirectorLLM {
-  if (settings.providers.director === "claude") {
-    return createClaudeDirector(anthropic(DIRECTOR_MODEL_ID));
-  }
-  throw new Error(`unknown director provider: ${settings.providers.director}`);
+  return directorRegistry.resolve(settings.providers.director);
 }

@@ -1,10 +1,12 @@
 import type { Settings } from "@/core/config";
+import { ProviderRegistry } from "@/core/factory";
 import type { ImageProvider } from "@/core/providers";
 import { ManualInboxImageProvider } from "@/providers/image/manual-inbox";
 
+export const imageRegistry = new ProviderRegistry<ImageProvider>("image");
+
+imageRegistry.register("manual", () => new ManualInboxImageProvider());
+
 export function resolveImage(settings: Settings): ImageProvider {
-  if (settings.providers.image === "manual") {
-    return new ManualInboxImageProvider();
-  }
-  throw new Error(`unknown image provider: ${settings.providers.image}`);
+  return imageRegistry.resolve(settings.providers.image);
 }
