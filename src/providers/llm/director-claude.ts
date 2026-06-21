@@ -41,16 +41,27 @@ export function createClaudeDirector(model: LanguageModel): DirectorLLM {
     }: ProposeConceptsInput): Promise<Concept[]> {
       const { object } = await generateObject({
         model,
-        system: DIRECTOR_SYSTEM,
         schema: z.object({ concepts: z.array(conceptSchema) }),
-        prompt: [
-          `Propose ${count} distinct concepts.`,
-          styleBrief(style),
-          lore ? `Campaign directive: ${lore}` : "",
-          history?.length ? `Avoid repeating: ${history.join("; ")}` : "",
-        ]
-          .filter(Boolean)
-          .join("\n\n"),
+        messages: [
+          {
+            role: "system",
+            content: DIRECTOR_SYSTEM,
+            providerOptions: {
+              anthropic: { cacheControl: { type: "ephemeral" as const } },
+            },
+          },
+          {
+            role: "user",
+            content: [
+              `Propose ${count} distinct concepts.`,
+              styleBrief(style),
+              lore ? `Campaign directive: ${lore}` : "",
+              history?.length ? `Avoid repeating: ${history.join("; ")}` : "",
+            ]
+              .filter(Boolean)
+              .join("\n\n"),
+          },
+        ],
       });
       return object.concepts.slice(0, count);
     },
@@ -58,9 +69,20 @@ export function createClaudeDirector(model: LanguageModel): DirectorLLM {
     async revise(concept: Concept, instruction: string): Promise<Concept> {
       const { object } = await generateObject({
         model,
-        system: DIRECTOR_SYSTEM,
         schema: conceptSchema,
-        prompt: `Revise this concept per the instruction.\n\nConcept: ${JSON.stringify(concept)}\n\nInstruction: ${instruction}`,
+        messages: [
+          {
+            role: "system",
+            content: DIRECTOR_SYSTEM,
+            providerOptions: {
+              anthropic: { cacheControl: { type: "ephemeral" as const } },
+            },
+          },
+          {
+            role: "user",
+            content: `Revise this concept per the instruction.\n\nConcept: ${JSON.stringify(concept)}\n\nInstruction: ${instruction}`,
+          },
+        ],
       });
       return object;
     },
@@ -68,18 +90,29 @@ export function createClaudeDirector(model: LanguageModel): DirectorLLM {
     async finalise(concept: Concept, orientation: Orientation, style?: Style): Promise<ShotSpec> {
       const { object } = await generateObject({
         model,
-        system: DIRECTOR_SYSTEM,
         schema: z.object({
           imagePrompt: z.string(),
           motionPrompt: z.string(),
           captionDraft: z.string(),
         }),
-        prompt: [
-          `Finalise this concept into a ${orientation} shot.`,
-          `Concept: ${JSON.stringify(concept)}`,
-          styleBrief(style),
-          "Write a base-image prompt, a motion prompt, and a short caption draft.",
-        ].join("\n\n"),
+        messages: [
+          {
+            role: "system",
+            content: DIRECTOR_SYSTEM,
+            providerOptions: {
+              anthropic: { cacheControl: { type: "ephemeral" as const } },
+            },
+          },
+          {
+            role: "user",
+            content: [
+              `Finalise this concept into a ${orientation} shot.`,
+              `Concept: ${JSON.stringify(concept)}`,
+              styleBrief(style),
+              "Write a base-image prompt, a motion prompt, and a short caption draft.",
+            ].join("\n\n"),
+          },
+        ],
       });
       return shotSpecSchema.parse({
         imagePrompt: object.imagePrompt,
@@ -93,9 +126,20 @@ export function createClaudeDirector(model: LanguageModel): DirectorLLM {
     async caption(shotSpec: ShotSpec, platform: Platform): Promise<string> {
       const { object } = await generateObject({
         model,
-        system: DIRECTOR_SYSTEM,
         schema: z.object({ caption: z.string() }),
-        prompt: `Write a ${platform} caption for this clip.\n\nDraft: ${shotSpec.captionDraft}\nImage: ${shotSpec.imagePrompt}`,
+        messages: [
+          {
+            role: "system",
+            content: DIRECTOR_SYSTEM,
+            providerOptions: {
+              anthropic: { cacheControl: { type: "ephemeral" as const } },
+            },
+          },
+          {
+            role: "user",
+            content: `Write a ${platform} caption for this clip.\n\nDraft: ${shotSpec.captionDraft}\nImage: ${shotSpec.imagePrompt}`,
+          },
+        ],
       });
       return object.caption;
     },
