@@ -200,7 +200,7 @@ export function RunDetail() {
                 autoPlay
                 loop
                 className={`w-full ${run.profile.orientation === "portrait" ? "aspect-[9/16] max-h-[70vh] object-contain" : "aspect-video"}`}
-                src={`/assets/renders/master/${run.artifacts.masterClip}`}
+                src={`/api/runs/${run.id}/asset/masterClip`}
               >
                 <track kind="captions" />
               </video>
@@ -211,7 +211,7 @@ export function RunDetail() {
                 controls
                 loop
                 className={`w-full ${run.profile.orientation === "portrait" ? "aspect-[9/16] max-h-[70vh] object-contain" : "aspect-video"}`}
-                src={`/assets/renders/raw/${run.artifacts.rawClip}`}
+                src={`/api/runs/${run.id}/asset/rawClip`}
               >
                 <track kind="captions" />
               </video>
@@ -219,7 +219,7 @@ export function RunDetail() {
           ) : run.artifacts.image ? (
             <div className="rounded-lg border border-border bg-surface overflow-hidden p-4 flex justify-center">
               <img
-                src={`/assets/renders/images/${run.artifacts.image}`}
+                src={`/api/runs/${run.id}/asset/image`}
                 alt="Base Render"
                 className={`rounded border border-border ${run.profile.orientation === "portrait" ? "max-h-[70vh] object-contain" : "w-full object-contain"}`}
               />

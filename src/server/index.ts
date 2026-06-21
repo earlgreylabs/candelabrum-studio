@@ -218,15 +218,30 @@ app.post("/api/runs/:id/regenerate", async (c) => {
   }
 });
 
-// Asset proxy: allow frontend to load artifacts (images/videos)
-app.get("/assets/renders/*", async (c) => {
-  const path = c.req.path.replace("/assets/renders/", "");
+// Serve a run's media artifact (base image / raw clip / master clip). The
+// pipeline records absolute paths in different roots (runs/ for the base image,
+// renders/ for video), so we resolve by kind from the run's own metadata rather
+// than guessing a URL layout. `kind` is allowlisted; the path is pipeline-set,
+// not client-supplied. Lives under /api/ so the Vite dev proxy forwards it (it
+// only proxies /api, not /assets).
+const SERVABLE_ARTIFACTS = ["image", "rawClip", "masterClip"] as const;
+type ServableArtifact = (typeof SERVABLE_ARTIFACTS)[number];
+
+app.get("/api/runs/:id/asset/:kind", async (c) => {
+  const kind = c.req.param("kind");
+  if (!SERVABLE_ARTIFACTS.includes(kind as ServableArtifact)) {
+    return c.text("Not Found", 404);
+  }
   const settings = await loadSettings(configDir);
-  const fullPath = resolve(settings.paths.renders, path);
+  const store = new RunStore(settings.paths.runs);
   try {
-    const file = Bun.file(fullPath);
-    if (await file.exists()) {
-      return new Response(file);
+    const run = await store.load(c.req.param("id"));
+    const path = run.artifacts[kind as ServableArtifact];
+    if (path) {
+      const file = Bun.file(path);
+      if (await file.exists()) {
+        return new Response(file);
+      }
     }
   } catch {
     // fallthrough to 404
