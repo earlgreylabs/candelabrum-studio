@@ -8,13 +8,6 @@
 import { resolve } from "node:path";
 import type { Stage } from "@/core/pipeline";
 
-export const animate: Stage = async (run, ctx) => {
-  const path = resolve(ctx.settings.paths.renders, "raw", `${run.id}.placeholder.mp4`);
-  await Bun.write(path, `stub raw clip for ${run.id}`);
-  run.artifacts.rawClip = path;
-  run.cost.push({ stage: "animate", provider: ctx.settings.providers.video, amountUsd: 0 });
-};
-
 export const interpolate: Stage = async (run, ctx) => {
   const path = resolve(ctx.settings.paths.renders, "master", `${run.id}.placeholder.mov`);
   await Bun.write(path, `stub flat ProRes master for ${run.id}`);

@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { loadSettings, loadStyle, type Settings, type Style } from "@/core/config";
 import { advance, approve, reject } from "@/core/orchestrator";
 import type { PipelineContext } from "@/core/pipeline";
-import type { DirectorLLM, ImageProvider } from "@/core/providers";
+import type { DirectorLLM, ImageProvider, VideoProvider } from "@/core/providers";
 import { createRun, type Run, transition } from "@/core/run";
 import { RunStore } from "@/core/store";
 
@@ -43,6 +43,14 @@ const fakeImage: ImageProvider = {
   },
 };
 
+const fakeVideo: VideoProvider = {
+  async animate(runId, renderDir) {
+    const path = join(renderDir, `${runId}.placeholder.mp4`);
+    await Bun.write(path, `stub raw video for ${runId}`);
+    return { path, provider: "fake-video", costUsd: 0 };
+  },
+};
+
 describe("orchestrator", () => {
   let root: string;
   let settings: Settings;
@@ -63,7 +71,15 @@ describe("orchestrator", () => {
     };
     style = await loadStyle("./config", "cosmic-scifi");
     store = new RunStore(settings.paths.runs);
-    ctx = { settings, store, style, director: fakeDirector, image: fakeImage, log: () => {} };
+    ctx = {
+      settings,
+      store,
+      style,
+      director: fakeDirector,
+      image: fakeImage,
+      video: fakeVideo,
+      log: () => {},
+    };
   });
 
   afterEach(async () => {
@@ -112,6 +128,7 @@ describe("orchestrator", () => {
       style,
       director: fakeDirector,
       image: fakeImage,
+      video: fakeVideo,
       log: () => {},
     };
     const resumed = await store2.load(run.id);

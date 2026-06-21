@@ -16,9 +16,9 @@ Rules:
 
 ## Now
 
-- Milestone: Slice 3 — Image stage: DONE + verified. Next: Slice 4 — Animate stage.
-- Last verified checkpoint: Slice 3. 4 gates green + 20 tests (including a file-drop test for `ManualInboxImageProvider`). The image stage awaits an operator drop, ingests the base image, and advances the run to Gate A.5.
-- Next step (start here): implement the `VideoProvider` interface (`animate(runId, runDir, spec, baseImagePath) -> VideoArtifact`) and the real `animate` stage. We need an adapter for the configured video provider (e.g. `ManualInbox` for video). Add `video` to `PipelineContext` and the resolver. Verify: gates + tests.
+- Milestone: Slice 4 — Animate stage: DONE + verified. Next: Slice 5 — Interpolate stage.
+- Last verified checkpoint: Slice 4. 4 gates green + 21 tests (including file-drop tests for `ManualInboxImageProvider` and `ManualInboxVideoProvider`). The animate stage awaits an operator drop, ingests the video, and advances the run towards Gate B.
+- Next step (start here): implement the real `interpolate` stage (which uses `rife-ncnn-vulkan` via a subprocess to convert the raw clip to a high-fps master clip). Keep caption/export stubbed. Verify: gates + tests.
 - Blockers: none.
 
 ## Decisions
@@ -40,6 +40,7 @@ Rules:
 - 2026-06-20: slice 1 (skeleton) done + verified — config/run/store/orchestrator/CLI, stubbed stages, 16 tests, real new→ready run across processes.
 - 2026-06-20: slice 2 (director) done + verified — `DirectorLLM` + Claude adapter (AI SDK), real `direct` stage, stage registry, injected context; 19 tests incl. 3 mock-model fixtures; keyless CLI reaches adapter, run persists at `directing`.
 - 2026-06-21: slice 3 (image) done + verified — `ImageProvider` interface + `ManualInbox` adapter + real `image` stage; 20 tests; CLI correctly uses the manual inbox and advances to gate_a5.
+- 2026-06-21: slice 4 (animate) done + verified — `VideoProvider` interface + `ManualInbox` adapter + real `animate` stage; 21 tests; CLI correctly uses the manual inbox for video.
 
 ## Archive
 

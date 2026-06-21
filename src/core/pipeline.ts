@@ -5,7 +5,7 @@
  */
 
 import type { Settings, Style } from "@/core/config";
-import type { DirectorLLM, ImageProvider } from "@/core/providers";
+import type { DirectorLLM, ImageProvider, VideoProvider } from "@/core/providers";
 import type { Run } from "@/core/run";
 import type { RunStore } from "@/core/store";
 
@@ -16,6 +16,8 @@ export interface PipelineContext {
   director: DirectorLLM;
   /** The image generator adapter, used by the image stage. */
   image: ImageProvider;
+  /** The video generator adapter, used by the animate stage. */
+  video: VideoProvider;
   /** The active style preset, if the run was created with one. */
   style?: Style;
   log: (message: string) => void;

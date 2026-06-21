@@ -51,3 +51,18 @@ export interface ImageArtifact {
 export interface ImageProvider {
   generate(runId: string, runDir: string, spec: ShotSpec): Promise<ImageArtifact>;
 }
+
+export interface VideoArtifact {
+  path: string;
+  provider: string;
+  costUsd: number;
+}
+
+export interface VideoProvider {
+  animate(
+    runId: string,
+    renderDir: string,
+    spec: ShotSpec,
+    baseImagePath: string,
+  ): Promise<VideoArtifact>;
+}
