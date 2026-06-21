@@ -62,6 +62,34 @@ app.get("/api/runs", async (c) => {
   return c.json({ runs });
 });
 
+// GET /api/runs/events - SSE endpoint. Must be registered before `/api/runs/:id`,
+// otherwise Hono matches "events" as the :id param and 404s the stream.
+app.get("/api/runs/events", (c) => {
+  return streamSSE(c, async (stream) => {
+    const settings = await loadSettings(configDir);
+    const store = new RunStore(settings.paths.runs);
+
+    let isClosed = false;
+    c.req.raw.signal.addEventListener("abort", () => {
+      isClosed = true;
+    });
+
+    while (!isClosed) {
+      try {
+        const runs = await store.list();
+        await stream.writeSSE({
+          data: JSON.stringify({ runs }),
+          event: "runs-update",
+        });
+      } catch (err) {
+        console.error("SSE stream error", err);
+      }
+
+      await Bun.sleep(2000);
+    }
+  });
+});
+
 // GET /api/runs/:id
 app.get("/api/runs/:id", async (c) => {
   const settings = await loadSettings(configDir);
@@ -162,33 +190,6 @@ app.post("/api/runs/:id/regenerate", async (c) => {
     console.error(`Failed to regenerate run ${id}:`, err);
     return c.json({ error: err instanceof Error ? err.message : String(err) }, 400);
   }
-});
-
-// GET /api/runs/events - SSE endpoint
-app.get("/api/runs/events", (c) => {
-  return streamSSE(c, async (stream) => {
-    const settings = await loadSettings(configDir);
-    const store = new RunStore(settings.paths.runs);
-
-    let isClosed = false;
-    c.req.raw.signal.addEventListener("abort", () => {
-      isClosed = true;
-    });
-
-    while (!isClosed) {
-      try {
-        const runs = await store.list();
-        await stream.writeSSE({
-          data: JSON.stringify({ runs }),
-          event: "runs-update",
-        });
-      } catch (err) {
-        console.error("SSE stream error", err);
-      }
-
-      await Bun.sleep(2000);
-    }
-  });
 });
 
 // Asset proxy: allow frontend to load artifacts (images/videos)

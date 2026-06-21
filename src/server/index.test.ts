@@ -44,4 +44,28 @@ describe("API Endpoints", () => {
     expect(data.run.id).toBe(run.id);
     expect(data.run.status).toBe("rejected");
   });
+
+  // Regression: `/api/runs/events` must resolve to the SSE stream, not be matched
+  // as `/api/runs/:id` with id "events" (which 404s and leaves the dashboard
+  // permanently "disconnected"). The events route has to be registered first.
+  test("GET /api/runs/events streams SSE, not matched as :id", async () => {
+    const controller = new AbortController();
+    const res = await app.fetch(
+      new Request("http://localhost/api/runs/events", { signal: controller.signal }),
+    );
+
+    expect(res.status).toBe(200);
+    expect(res.headers.get("content-type")).toContain("text/event-stream");
+
+    if (!res.body) {
+      throw new Error("events response had no body");
+    }
+    const reader = res.body.getReader();
+    const { value } = await reader.read();
+    expect(new TextDecoder().decode(value)).toContain("runs-update");
+
+    // The handler is an infinite loop; release it so the test can exit.
+    await reader.cancel();
+    controller.abort();
+  });
 });
