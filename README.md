@@ -13,8 +13,12 @@ image, B clip).
 ## Requirements
 
 - [Bun](https://bun.com) 1.3+ (runtime, package manager, test runner).
-- An `ANTHROPIC_API_KEY` for the director stage (the only stage wired to a real
-  provider so far). Everything else runs without keys.
+- An `ANTHROPIC_API_KEY` for the director — it powers both the concept (stage 1)
+  and caption (stage 5) stages. No other key is needed by default.
+- Optional native binaries, auto-detected via `Bun.which`: `rife-ncnn-vulkan`
+  (frame interpolation) and `ffmpeg` (delivery encode). When either is absent the
+  matching stage passes the clip through untouched, so the pipeline still reaches
+  `ready`.
 
 ## Setup
 
@@ -26,10 +30,22 @@ cp .env.example .env     # then set ANTHROPIC_API_KEY in .env
 `.env` is gitignored. Non-secret configuration (providers, paths, output
 profiles, style presets) lives in [`config/`](config/).
 
+## Run (dashboard)
+
+The dashboard is the product surface: it lists runs, streams stage progress over
+SSE, and presents the three human gates as approve / reject / revise / regenerate
+actions (including a Gate B caption override before export).
+
+```bash
+bun run dev            # Hono API on :3000, Vite dashboard on :5173 (proxies /api)
+```
+
+Open <http://localhost:5173>. Reaching Gate B fires a macOS notification.
+
 ## Run (headless CLI)
 
-The CLI creates and advances runs. The human gates are exposed here as
-`approve` / `reject` for headless use; in the product they live in the dashboard.
+The CLI creates and advances the same runs from the terminal; the gates are
+exposed here as `approve` / `reject` for headless use.
 
 ```bash
 bun run cli new        # create a run; the director proposes a concept, pauses at Gate A
@@ -38,8 +54,8 @@ bun run cli new        # create a run; the director proposes a concept, pauses a
                        #   --lore "<campaign directive>"
 bun run cli list                 # all runs + status
 bun run cli show <id>            # full run metadata (JSON)
-bun run cli approve <id>         # pass the current gate, advance to the next
-bun run cli reject <id>          # discard a run
+bun run cli approve <id>         # pass the current gate, advance to the next  (--note <text>)
+bun run cli reject <id>          # discard a run                              (--note <text>)
 bun run cli resume <id>          # continue from the run's persisted status
 ```
 
@@ -50,11 +66,23 @@ and drives resume, so a crash continues rather than restarts.
 
 ### Current state
 
-The **director (stage 1) is real** (Claude via the Vercel AI SDK). Stages 2-6
-are **stubs** that write placeholder artifacts, so an approved run still reaches
-`ready` end to end. The React/Vite dashboard and the real media stages
-(image / video providers, `rife-ncnn-vulkan`, `ffmpeg`) are upcoming slices; see
-[`BUILD_STATE.md`](BUILD_STATE.md).
+v1 is feature-complete: all six pipeline stages are real and the full dashboard
+is wired up. By stage:
+
+- **direct** (1) — real, Claude via the Vercel AI SDK.
+- **image** (2) / **animate** (3) — real, defaulting to the `ManualInbox`
+  adapter: the run pauses, prints an inbox path, and ingests the file you drop in.
+  Swapping to a paid image/video API is a `config/settings.toml` change, not code.
+- **interpolate** (4) — wired to `rife-ncnn-vulkan`; the heavy frame
+  extraction / re-encode is still stubbed, so it currently passes the raw clip
+  through to the master.
+- **caption** (5) — real, the director adapter drafts the platform caption.
+- **export** (6) — real, `FfmpegExporter` writes the master, `caption.txt`, and
+  `metadata.json` into the `ready/` package (encodes with `ffmpeg` when present,
+  else copies the master through).
+
+The remaining v1 milestone is a full end-to-end render against reality; see
+[`BUILD_STATE.md`](BUILD_STATE.md). Auto-publishing (stage 7) is phase 2.
 
 Generated output is gitignored: `runs/` (per-run state + artifacts),
 `renders/{raw,master}/` (working video + masters), `ready/` (export packages).

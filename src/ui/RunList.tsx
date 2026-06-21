@@ -12,7 +12,7 @@ export function RunList({ runs, status }: RunListProps) {
       <header className="mb-8 flex items-end justify-between border-b border-border pb-4">
         <div>
           <h1 className="text-3xl font-bold text-accent">Candelabrum Studio</h1>
-          <p className="text-secondary font-mono text-sm tracking-tight">Phase 2 Dashboard</p>
+          <p className="text-secondary font-mono text-sm tracking-tight">v1 Dashboard</p>
         </div>
         <div className="text-sm font-medium">
           <span className="text-faint mr-2">API:</span>
