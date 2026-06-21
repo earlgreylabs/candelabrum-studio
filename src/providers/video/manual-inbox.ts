@@ -9,6 +9,7 @@ export class ManualInboxVideoProvider implements VideoProvider {
     renderDir: string,
     spec: ShotSpec,
     baseImagePath: string,
+    onPayload?: (payload: any) => void,
   ): Promise<VideoArtifact> {
     const inboxDir = resolve(renderDir, `${runId}-inbox`);
     await mkdir(inboxDir, { recursive: true });

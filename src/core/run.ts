@@ -83,6 +83,7 @@ const runArtifactsSchema = z.object({
   rawClip: z.string().optional(),
   masterClip: z.string().optional(),
   masterProxyClip: z.string().optional(),
+  providerJobId: z.string().optional(),
   exportPackage: z.string().optional(),
   exportVideo: z.string().optional(),
 });
@@ -96,6 +97,11 @@ const runEventSchema = z.object({
 });
 export type RunEvent = z.infer<typeof runEventSchema>;
 
+const overridesSchema = z.object({
+  imageProvider: z.string().optional(),
+  videoProvider: z.string().optional(),
+});
+
 const costEntrySchema = z.object({
   stage: z.string(),
   provider: z.string(),
@@ -104,6 +110,7 @@ const costEntrySchema = z.object({
   // runs created before model tracking still load.
   model: z.string().optional(),
   amountUsd: z.number(),
+  payload: z.any().optional(),
 });
 
 export const runSchema = z.object({
@@ -117,6 +124,7 @@ export const runSchema = z.object({
   artifacts: runArtifactsSchema,
   events: z.array(runEventSchema),
   cost: z.array(costEntrySchema),
+  overrides: overridesSchema.optional(),
   createdAt: z.string(),
 });
 export type Run = z.infer<typeof runSchema>;

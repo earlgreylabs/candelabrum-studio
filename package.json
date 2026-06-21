@@ -24,6 +24,7 @@
     "react-router-dom": "^7.18.0",
     "smol-toml": "^1.3.1",
     "tailwind-merge": "^3.6.0",
+    "wavespeed": "^0.2.4",
     "zod": "^3.24.1"
   },
   "devDependencies": {

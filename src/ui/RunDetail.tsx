@@ -123,6 +123,38 @@ export function RunDetail() {
     }
   };
 
+  const handleResume = async () => {
+    if (!run) return;
+    setActionLoading(true);
+    try {
+      const res = await fetch(`/api/runs/${run.id}/resume`, { method: "POST" });
+      if (!res.ok) {
+        throw new Error(await errorMessage(res, "Resume failed"));
+      }
+      fetchRun();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : String(err));
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleRecover = async () => {
+    if (!run) return;
+    setActionLoading(true);
+    try {
+      const res = await fetch(`/api/runs/${run.id}/recover`, { method: "POST" });
+      if (!res.ok) {
+        throw new Error(await errorMessage(res, "Recover failed"));
+      }
+      fetchRun();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : String(err));
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   if (loading) return <div className="p-8 text-primary">Loading...</div>;
   if (error || !run) return <div className="p-8 text-status-danger">{error || "Not found"}</div>;
 
@@ -203,7 +235,7 @@ export function RunDetail() {
                 autoPlay
                 loop
                 className={`w-full ${run.profile.orientation === "portrait" ? "aspect-[9/16] max-h-[70vh] object-contain" : "aspect-video"}`}
-                src={`/api/runs/${run.id}/asset/${run.artifacts.masterProxyClip ? 'masterProxyClip' : 'masterClip'}`}
+                src={`/api/runs/${run.id}/asset/${run.artifacts.masterProxyClip ? "masterProxyClip" : "masterClip"}`}
               >
                 <track kind="captions" />
               </video>
@@ -335,11 +367,28 @@ export function RunDetail() {
                 )}
               </div>
             ) : (
-              <p className="text-sm text-secondary">
-                {run.status === "ready" || run.status === "rejected" || run.status === "failed"
-                  ? "Run has completed."
-                  : "Run is processing. Operator action not currently required."}
-              </p>
+              <div className="space-y-4">
+                <p className="text-sm text-secondary">
+                  {run.status === "ready" || run.status === "rejected" || run.status === "failed"
+                    ? "Run has completed."
+                    : "Run is processing. Operator action not currently required."}
+                </p>
+                {run.status === "failed" && (
+                  <div className="pt-4 border-t border-border">
+                    <p className="text-xs text-status-danger mb-3">
+                      This run failed due to an error. If you have resolved the underlying issue (e.g., added credits or fixed a network issue), you can attempt to recover the run.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={handleRecover}
+                      disabled={actionLoading}
+                      className="w-full rounded bg-status-danger/20 text-status-danger border border-status-danger/50 py-2 font-semibold hover:bg-status-danger/30 transition-colors disabled:opacity-50"
+                    >
+                      Recover from Failure
+                    </button>
+                  </div>
+                )}
+              </div>
             )}
           </div>
 
@@ -361,12 +410,12 @@ export function RunDetail() {
             </div>
           </div>
 
-          {/* Per-step cost ledger: which model ran each step and what it cost. */}
+          {/* Per-step breakdown: which model ran each step, what it cost, and payload. */}
           <div className="rounded-lg border border-border bg-surface p-6 space-y-4">
-            <h3 className="text-lg font-medium text-primary">Cost</h3>
+            <h3 className="text-lg font-medium text-primary">Breakdown</h3>
             <div className="space-y-2 text-sm">
               {costRows.map(({ entry, key }) => (
-                <div key={key} className="flex items-baseline justify-between gap-3">
+                <div key={key} className="flex items-center justify-between gap-3">
                   <span className="shrink-0 capitalize text-secondary">{entry.stage}</span>
                   <span
                     className="flex-1 truncate text-right font-mono text-xs text-faint"
@@ -374,6 +423,16 @@ export function RunDetail() {
                   >
                     {entry.model ?? entry.provider}
                   </span>
+                  {entry.payload && (
+                    <button
+                      type="button"
+                      onClick={() => alert(JSON.stringify(entry.payload, null, 2))}
+                      className="shrink-0 rounded bg-accent/10 px-1.5 py-0.5 text-[10px] font-bold text-accent hover:bg-accent/20 border border-accent/30 transition-colors"
+                      title="View Payload"
+                    >
+                      P
+                    </button>
+                  )}
                   <span className="shrink-0 font-mono">${entry.amountUsd.toFixed(2)}</span>
                 </div>
               ))}

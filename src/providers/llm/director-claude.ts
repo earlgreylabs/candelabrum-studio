@@ -29,63 +29,96 @@ function styleBrief(style?: Style): string {
 export function createClaudeDirector(model: LanguageModel): DirectorLLM {
   return {
     modelId: modelIdOf(model),
-    async proposeConcepts({
-      count,
-      style,
-      lore,
-      history,
-    }: ProposeConceptsInput): Promise<Concept[]> {
+    async proposeConcepts(
+      { count, style, lore, history }: ProposeConceptsInput,
+      onPayload?: (payload: any) => void,
+    ): Promise<Concept[]> {
+      const messages = [
+        {
+          role: "system" as const,
+          content: DIRECTOR_SYSTEM,
+          providerOptions: {
+            anthropic: { cacheControl: { type: "ephemeral" as const } },
+          },
+        },
+        {
+          role: "user" as const,
+          content: [
+            `Propose ${count} distinct concepts.`,
+            styleBrief(style),
+            lore ? `Campaign directive: ${lore}` : "",
+            history?.length ? `Avoid repeating: ${history.join("; ")}` : "",
+          ]
+            .filter(Boolean)
+            .join("\n\n"),
+        },
+      ];
+      onPayload?.({ model: modelIdOf(model), messages });
+
       const { object } = await generateObject({
         model,
         allowSystemInMessages: true,
         schema: z.object({ concepts: z.array(conceptSchema) }),
-        messages: [
-          {
-            role: "system",
-            content: DIRECTOR_SYSTEM,
-            providerOptions: {
-              anthropic: { cacheControl: { type: "ephemeral" as const } },
-            },
-          },
-          {
-            role: "user",
-            content: [
-              `Propose ${count} distinct concepts.`,
-              styleBrief(style),
-              lore ? `Campaign directive: ${lore}` : "",
-              history?.length ? `Avoid repeating: ${history.join("; ")}` : "",
-            ]
-              .filter(Boolean)
-              .join("\n\n"),
-          },
-        ],
+        messages,
       });
       return object.concepts.slice(0, count);
     },
 
-    async revise(concept: Concept, instruction: string): Promise<Concept> {
+    async revise(
+      concept: Concept,
+      instruction: string,
+      onPayload?: (payload: any) => void,
+    ): Promise<Concept> {
+      const messages = [
+        {
+          role: "system" as const,
+          content: DIRECTOR_SYSTEM,
+          providerOptions: {
+            anthropic: { cacheControl: { type: "ephemeral" as const } },
+          },
+        },
+        {
+          role: "user" as const,
+          content: `Revise this concept per the instruction.\n\nConcept: ${JSON.stringify(concept)}\n\nInstruction: ${instruction}`,
+        },
+      ];
+      onPayload?.({ model: modelIdOf(model), messages });
+
       const { object } = await generateObject({
         model,
         allowSystemInMessages: true,
         schema: conceptSchema,
-        messages: [
-          {
-            role: "system",
-            content: DIRECTOR_SYSTEM,
-            providerOptions: {
-              anthropic: { cacheControl: { type: "ephemeral" as const } },
-            },
-          },
-          {
-            role: "user",
-            content: `Revise this concept per the instruction.\n\nConcept: ${JSON.stringify(concept)}\n\nInstruction: ${instruction}`,
-          },
-        ],
+        messages,
       });
       return object;
     },
 
-    async finalise(concept: Concept, orientation: Orientation, style?: Style): Promise<ShotSpec> {
+    async finalise(
+      concept: Concept,
+      orientation: Orientation,
+      style?: Style,
+      onPayload?: (payload: any) => void,
+    ): Promise<ShotSpec> {
+      const messages = [
+        {
+          role: "system" as const,
+          content: DIRECTOR_SYSTEM,
+          providerOptions: {
+            anthropic: { cacheControl: { type: "ephemeral" as const } },
+          },
+        },
+        {
+          role: "user" as const,
+          content: [
+            `Finalise this concept into a ${orientation} shot.`,
+            `Concept: ${JSON.stringify(concept)}`,
+            styleBrief(style),
+            "Write a base-image prompt, a motion prompt, and a short caption draft.",
+          ].join("\n\n"),
+        },
+      ];
+      onPayload?.({ model: modelIdOf(model), messages });
+
       const { object } = await generateObject({
         model,
         allowSystemInMessages: true,
@@ -94,24 +127,7 @@ export function createClaudeDirector(model: LanguageModel): DirectorLLM {
           motionPrompt: z.string(),
           captionDraft: z.string(),
         }),
-        messages: [
-          {
-            role: "system",
-            content: DIRECTOR_SYSTEM,
-            providerOptions: {
-              anthropic: { cacheControl: { type: "ephemeral" as const } },
-            },
-          },
-          {
-            role: "user",
-            content: [
-              `Finalise this concept into a ${orientation} shot.`,
-              `Concept: ${JSON.stringify(concept)}`,
-              styleBrief(style),
-              "Write a base-image prompt, a motion prompt, and a short caption draft.",
-            ].join("\n\n"),
-          },
-        ],
+        messages,
       });
       return shotSpecSchema.parse({
         imagePrompt: object.imagePrompt,
@@ -122,24 +138,31 @@ export function createClaudeDirector(model: LanguageModel): DirectorLLM {
       });
     },
 
-    async caption(shotSpec: ShotSpec, platform: Platform): Promise<string> {
+    async caption(
+      shotSpec: ShotSpec,
+      platform: Platform,
+      onPayload?: (payload: any) => void,
+    ): Promise<string> {
+      const messages = [
+        {
+          role: "system" as const,
+          content: DIRECTOR_SYSTEM,
+          providerOptions: {
+            anthropic: { cacheControl: { type: "ephemeral" as const } },
+          },
+        },
+        {
+          role: "user" as const,
+          content: `Write a ${platform} caption for this clip.\n\nDraft: ${shotSpec.captionDraft}\nImage: ${shotSpec.imagePrompt}`,
+        },
+      ];
+      onPayload?.({ model: modelIdOf(model), messages });
+
       const { object } = await generateObject({
         model,
         allowSystemInMessages: true,
         schema: z.object({ caption: z.string() }),
-        messages: [
-          {
-            role: "system",
-            content: DIRECTOR_SYSTEM,
-            providerOptions: {
-              anthropic: { cacheControl: { type: "ephemeral" as const } },
-            },
-          },
-          {
-            role: "user",
-            content: `Write a ${platform} caption for this clip.\n\nDraft: ${shotSpec.captionDraft}\nImage: ${shotSpec.imagePrompt}`,
-          },
-        ],
+        messages,
       });
       return object.caption;
     },

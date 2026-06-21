@@ -28,7 +28,7 @@ export const upscale: Stage = async (run, ctx) => {
   }
   const imagePath = run.artifacts.image;
   const ext = extname(imagePath);
-  
+
   // We'll store the upscaled image in the run's directory
   const runDir = dirname(imagePath);
   const upscaledPath = resolve(runDir, `image.upscaled${ext}`);
@@ -39,11 +39,11 @@ export const upscale: Stage = async (run, ctx) => {
     ctx.log(`[Upscale] Topaz Photo AI found, upscaling base image...`);
     try {
       // Topaz CLI typically works by specifying an output directory or file prefix.
-      const proc = Bun.spawn(
-        [TPAI_BIN, "--cli", imagePath, "--output", runDir],
-        { stdout: "pipe", stderr: "pipe" }
-      );
-      
+      const proc = Bun.spawn([TPAI_BIN, "--cli", imagePath, "--output", runDir], {
+        stdout: "pipe",
+        stderr: "pipe",
+      });
+
       await proc.exited;
       if (proc.exitCode !== 0) {
         const stderr = (await new Response(proc.stderr).text()).trim();
@@ -55,9 +55,9 @@ export const upscale: Stage = async (run, ctx) => {
       const possibleOutputs = [
         `${baseName}-edit${ext}`,
         `${baseName}-autopilot${ext}`,
-        `${baseName}-upscale${ext}`
+        `${baseName}-upscale${ext}`,
       ];
-      
+
       let foundOutput = false;
       for (const p of possibleOutputs) {
         if (await Bun.file(p).exists()) {
@@ -68,9 +68,9 @@ export const upscale: Stage = async (run, ctx) => {
       }
 
       if (!foundOutput) {
-         ctx.log(`[Upscale] Could not find Topaz output, falling back to pass-through.`);
-         await passThrough(run, imagePath, upscaledPath);
-         return;
+        ctx.log(`[Upscale] Could not find Topaz output, falling back to pass-through.`);
+        await passThrough(run, imagePath, upscaledPath);
+        return;
       }
 
       run.artifacts.upscaledImage = upscaledPath;
@@ -83,7 +83,9 @@ export const upscale: Stage = async (run, ctx) => {
       ctx.log(`[Upscale] Image upscaled successfully.`);
       return;
     } catch (err) {
-      ctx.log(`[Upscale] failed (${err instanceof Error ? err.message : err}); passing image through.`);
+      ctx.log(
+        `[Upscale] failed (${err instanceof Error ? err.message : err}); passing image through.`,
+      );
     }
   } else {
     ctx.log(`[Upscale] Topaz Photo AI not found at ${TPAI_BIN}; passing image through.`);

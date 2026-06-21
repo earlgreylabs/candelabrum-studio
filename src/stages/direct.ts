@@ -9,11 +9,17 @@ import type { Stage } from "@/core/pipeline";
 const CONCEPT_COUNT = 3;
 
 export const direct: Stage = async (run, ctx) => {
-  const concepts = await ctx.director.proposeConcepts({
-    count: CONCEPT_COUNT,
-    style: ctx.style,
-    lore: run.lore,
-  });
+  let proposePayload: any = undefined;
+  const concepts = await ctx.director.proposeConcepts(
+    {
+      count: CONCEPT_COUNT,
+      style: ctx.style,
+      lore: run.lore,
+    },
+    (payload) => {
+      proposePayload = payload;
+    },
+  );
   const chosen = concepts[0];
   if (!chosen) {
     throw new Error("director proposed no concepts");
@@ -24,5 +30,6 @@ export const direct: Stage = async (run, ctx) => {
     provider: ctx.settings.providers.director,
     model: ctx.director.modelId,
     amountUsd: 0,
+    payload: proposePayload,
   });
 };

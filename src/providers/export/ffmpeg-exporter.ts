@@ -27,7 +27,7 @@ export class FfmpegExporter implements Exporter {
     }
 
     const lutPath = resolve(process.cwd(), "assets/luts/cinematic.cube");
-    
+
     console.log(`[FfmpegExporter] Burning LUT and encoding H.264...`);
     const proc = Bun.spawn(
       [

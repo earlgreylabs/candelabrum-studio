@@ -8,7 +8,10 @@ export const caption: Stage = async (run, ctx) => {
   // The director adapter implements the platform caption logic.
   // We use tiktok as the default target platform for now.
   const platform = "tiktok";
-  const finalCaption = await ctx.director.caption(run.shotSpec, platform);
+  let captionPayload: any = undefined;
+  const finalCaption = await ctx.director.caption(run.shotSpec, platform, (payload) => {
+    captionPayload = payload;
+  });
 
   run.shotSpec.captionDraft = finalCaption;
   run.cost.push({
@@ -16,5 +19,6 @@ export const caption: Stage = async (run, ctx) => {
     provider: ctx.settings.providers.director,
     model: ctx.director.modelId,
     amountUsd: 0,
+    payload: captionPayload,
   });
 };

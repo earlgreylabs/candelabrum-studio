@@ -8,8 +8,8 @@ not relearn the same thing twice. Newest at the top of each section.
 - **Veo image-to-video is not usable through `@ai-sdk/google`'s video model (v3.0.83).**
   `experimental_generateVideo({ prompt: { image } })` serialises the base image as
   `image.inlineData` (the `generateContent` chat shape). The Gemini API's Veo
-  `:predictLongRunning` endpoint rejects it: *"`inlineData` isn't supported by this
-  model."* It fails for **every** Veo model (3.0-fast, 3.0, 3.1-preview), so it is
+  `:predictLongRunning` endpoint rejects it: _"`inlineData` isn't supported by this
+  model."_ It fails for **every** Veo model (3.0-fast, 3.0, 3.1-preview), so it is
   an SDK shape bug, not a model issue. Fix: call `:predictLongRunning` directly with
   the image as `image.bytesBase64Encoded` + `mimeType`, then poll the operation.
 - **Veo `-fast` variants are text-to-video only.** They reject any image input
@@ -18,7 +18,7 @@ not relearn the same thing twice. Newest at the top of each section.
   `GET https://generativelanguage.googleapis.com/v1beta/models?key=…`. The Gemini
   API names Veo 3.1 `veo-3.1-generate-preview` (a `-preview` suffix), not `-001`.
 - **Gemini image generation ≠ fal/Imagen image generation in the AI SDK.** Gemini
-  (`gemini-3.1-flash-image`, "Nano Banana") returns the image as a *file part* on a
+  (`gemini-3.1-flash-image`, "Nano Banana") returns the image as a _file part_ on a
   `generateText` response (read `result.files`). fal/Imagen use `generateImage`
   (`result.image`). Different call, different result shape.
 - **`@ai-sdk/google` reads `GOOGLE_GENERATIVE_AI_API_KEY`, not `GEMINI_API_KEY`.**

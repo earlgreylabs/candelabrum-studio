@@ -10,6 +10,7 @@ import {
   prepRegenerate,
   reject as rejectRun,
   revise as reviseRun,
+  recover as recoverRun,
 } from "@/core/orchestrator";
 import type { PipelineContext } from "@/core/pipeline";
 import { type Run, transition, createRun } from "@/core/run";
@@ -86,7 +87,7 @@ app.get("/api/runs", async (c) => {
 app.post("/api/runs", async (c) => {
   const settings = await loadSettings(configDir);
   const store = new RunStore(settings.paths.runs);
-  
+
   let orientation: any = "portrait";
   let styleId: string | undefined = "cosmic-scifi";
   let lore: string | undefined;
@@ -246,13 +247,57 @@ app.post("/api/runs/:id/regenerate", async (c) => {
   }
 });
 
+// POST /api/runs/:id/resume
+app.post("/api/runs/:id/resume", async (c) => {
+  const settings = await loadSettings(configDir);
+  const store = new RunStore(settings.paths.runs);
+  const id = c.req.param("id");
+  try {
+    const run = await store.load(id);
+    const ctx = await buildContext(settings, store, run);
+
+    // Advance the current state in the background. Useful if the node process
+    // crashed or timed out while waiting for a long-running external job.
+    advanceInBackground(run, ctx);
+    return c.json({ run }, 202);
+  } catch (err) {
+    console.error(`Failed to resume run ${id}:`, err);
+    return c.json({ error: err instanceof Error ? err.message : String(err) }, 400);
+  }
+});
+
+// POST /api/runs/:id/recover
+app.post("/api/runs/:id/recover", async (c) => {
+  const settings = await loadSettings(configDir);
+  const store = new RunStore(settings.paths.runs);
+  const id = c.req.param("id");
+  try {
+    const run = await store.load(id);
+    const ctx = await buildContext(settings, store, run);
+
+    // Revert the failed status back to what it was, then advance.
+    const recovered = await recoverRun(run, ctx);
+    advanceInBackground(recovered, ctx);
+    return c.json({ run: recovered }, 202);
+  } catch (err) {
+    console.error(`Failed to recover run ${id}:`, err);
+    return c.json({ error: err instanceof Error ? err.message : String(err) }, 400);
+  }
+});
+
 // Serve a run's media artifact (base image / raw clip / master clip). The
 // pipeline records absolute paths in different roots (runs/ for the base image,
 // renders/ for video), so we resolve by kind from the run's own metadata rather
 // than guessing a URL layout. `kind` is allowlisted; the path is pipeline-set,
 // not client-supplied. Lives under /api/ so the Vite dev proxy forwards it (it
 // only proxies /api, not /assets).
-const SERVABLE_ARTIFACTS = ["image", "rawClip", "masterClip", "masterProxyClip", "exportVideo"] as const;
+const SERVABLE_ARTIFACTS = [
+  "image",
+  "rawClip",
+  "masterClip",
+  "masterProxyClip",
+  "exportVideo",
+] as const;
 type ServableArtifact = (typeof SERVABLE_ARTIFACTS)[number];
 
 app.get("/api/runs/:id/asset/:kind", async (c) => {

@@ -41,7 +41,8 @@ export function RunCompare() {
   if (loading) return <div className="p-8 text-primary">Loading...</div>;
   if (error || !run) return <div className="p-8 text-status-danger">{error || "Not found"}</div>;
 
-  const orientationClass = run.profile.orientation === "portrait" ? "aspect-[9/16]" : "aspect-video";
+  const orientationClass =
+    run.profile.orientation === "portrait" ? "aspect-[9/16]" : "aspect-video";
   const objectFitClass = run.profile.orientation === "portrait" ? "object-contain" : "object-cover";
 
   const columns = [
@@ -79,10 +80,18 @@ export function RunCompare() {
     <div className="flex min-h-screen flex-col bg-background p-8 text-primary font-sans">
       <header className="mb-8 flex items-center justify-between border-b border-border pb-4">
         <div className="flex items-center gap-4">
-          <Link to={`/runs/${run.id}`} className="text-secondary hover:text-primary transition-colors">
+          <Link
+            to={`/runs/${run.id}`}
+            className="text-secondary hover:text-primary transition-colors"
+          >
             &larr; Back to Run
           </Link>
-          <h1 className="text-2xl font-bold font-mono">{run.id} <span className="text-secondary font-sans text-lg font-medium ml-2">Pipeline Evolution</span></h1>
+          <h1 className="text-2xl font-bold font-mono">
+            {run.id}{" "}
+            <span className="text-secondary font-sans text-lg font-medium ml-2">
+              Pipeline Evolution
+            </span>
+          </h1>
         </div>
         <div className="flex items-center gap-4">
           <select
@@ -119,7 +128,10 @@ export function RunCompare() {
       <main className="flex-1">
         <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4 h-full">
           {columns.map((col, idx) => (
-            <div key={idx} className="flex flex-col rounded-lg border border-border bg-surface overflow-hidden shadow-sm">
+            <div
+              key={idx}
+              className="flex flex-col rounded-lg border border-border bg-surface overflow-hidden shadow-sm"
+            >
               <div className="p-4 border-b border-border bg-surfaceRaised">
                 <h3 className="text-lg font-semibold text-accent">{col.title}</h3>
                 <p className="text-xs text-secondary mt-1">{col.description}</p>

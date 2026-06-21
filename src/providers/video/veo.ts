@@ -67,21 +67,56 @@ export class VeoVideoProvider implements VideoProvider {
     renderDir: string,
     spec: ShotSpec,
     baseImagePath: string,
+    onPayload?: (payload: any) => void,
+    existingJobId?: string,
+    onJobId?: (jobId: string) => Promise<void>,
   ): Promise<VideoArtifact> {
     await mkdir(renderDir, { recursive: true });
-    console.log(`[veo] Animating base image for run ${runId} with ${this.modelId}...`);
 
-    const imageBytes = await readFile(baseImagePath);
-    const mimeType = MIME_BY_EXT[extname(baseImagePath).toLowerCase()] ?? "image/png";
+    let operationName = existingJobId;
+    let payload: any = undefined;
 
-    const operationName = await this.startGeneration(spec, imageBytes.toString("base64"), mimeType);
+    if (!operationName) {
+      console.log(`[veo] Animating base image for run ${runId} with ${this.modelId}...`);
+      const imageBytes = await readFile(baseImagePath);
+      const mimeType = MIME_BY_EXT[extname(baseImagePath).toLowerCase()] ?? "image/png";
+      const base64 = imageBytes.toString("base64");
+
+      payload = {
+        model: `${this.baseUrl}/models/${this.modelId}:predictLongRunning`,
+        body: {
+          instances: [
+            {
+              prompt: spec.motionPrompt,
+              image: { bytesBase64Encoded: "<base64_omitted>", mimeType },
+            },
+          ],
+          parameters: { aspectRatio: ASPECT_RATIO[spec.orientation], sampleCount: 1 },
+        },
+      };
+      onPayload?.(payload);
+
+      operationName = await this.startGeneration(spec, base64, mimeType);
+      if (onJobId) {
+        await onJobId(operationName);
+      }
+    } else {
+      console.log(`[veo] Resuming existing animation job ${operationName} for run ${runId}...`);
+    }
+
     const videoBytes = await this.awaitVideo(operationName, runId);
 
     const destPath = resolve(renderDir, `${runId}.mp4`);
     await Bun.write(destPath, videoBytes);
     console.log(`[veo] Saved raw clip to ${destPath}`);
 
-    return { path: destPath, provider: "veo", model: this.modelId, costUsd: ESTIMATED_COST_USD };
+    return {
+      path: destPath,
+      provider: "veo",
+      model: this.modelId,
+      costUsd: ESTIMATED_COST_USD,
+      payload,
+    };
   }
 
   private async startGeneration(spec: ShotSpec, base64: string, mimeType: string): Promise<string> {

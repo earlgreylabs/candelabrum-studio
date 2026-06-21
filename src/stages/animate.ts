@@ -20,13 +20,21 @@ export const animate: Stage = async (run, ctx) => {
     rendersRawDir,
     run.shotSpec,
     sourceImage,
+    undefined,
+    run.artifacts.providerJobId,
+    async (jobId) => {
+      run.artifacts.providerJobId = jobId;
+      await ctx.store.save(run);
+    },
   );
 
+  run.artifacts.providerJobId = undefined; // clear it once completed successfully
   run.artifacts.rawClip = artifact.path;
   run.cost.push({
     stage: "animate",
     provider: artifact.provider,
     model: artifact.model,
     amountUsd: artifact.costUsd,
+    payload: artifact.payload,
   });
 };

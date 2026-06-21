@@ -29,10 +29,26 @@ export interface ProposeConceptsInput {
 export interface DirectorLLM {
   /** The model id driving the director's LLM steps, for cost tracking. */
   readonly modelId: string;
-  proposeConcepts(input: ProposeConceptsInput): Promise<Concept[]>;
-  revise(concept: Concept, instruction: string): Promise<Concept>;
-  finalise(concept: Concept, orientation: Orientation, style?: Style): Promise<ShotSpec>;
-  caption(shotSpec: ShotSpec, platform: Platform): Promise<string>;
+  proposeConcepts(
+    input: ProposeConceptsInput,
+    onPayload?: (payload: any) => void,
+  ): Promise<Concept[]>;
+  revise(
+    concept: Concept,
+    instruction: string,
+    onPayload?: (payload: any) => void,
+  ): Promise<Concept>;
+  finalise(
+    concept: Concept,
+    orientation: Orientation,
+    style?: Style,
+    onPayload?: (payload: any) => void,
+  ): Promise<ShotSpec>;
+  caption(
+    shotSpec: ShotSpec,
+    platform: Platform,
+    onPayload?: (payload: any) => void,
+  ): Promise<string>;
 }
 
 export interface ImageArtifact {
@@ -41,6 +57,7 @@ export interface ImageArtifact {
   provider: string;
   model: string;
   costUsd: number;
+  payload?: any;
 }
 
 export interface ImageProvider {
@@ -52,6 +69,7 @@ export interface VideoArtifact {
   provider: string;
   model: string;
   costUsd: number;
+  payload?: any;
 }
 
 export interface VideoProvider {
@@ -60,6 +78,9 @@ export interface VideoProvider {
     renderDir: string,
     spec: ShotSpec,
     baseImagePath: string,
+    onPayload?: (payload: any) => void,
+    existingJobId?: string,
+    onJobId?: (jobId: string) => Promise<void>,
   ): Promise<VideoArtifact>;
 }
 

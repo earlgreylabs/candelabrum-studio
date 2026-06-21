@@ -50,6 +50,31 @@ async function passThrough(run: Run, rawClip: string, masterDir: string): Promis
   const masterClipPath = resolve(masterDir, `${run.id}${extname(rawClip)}`);
   await copyFile(rawClip, masterClipPath);
   run.artifacts.masterClip = masterClipPath;
+
+  // Create an MP4 proxy for the UI if it's a MOV file to prevent MIME errors
+  const ffmpeg = Bun.which("ffmpeg");
+  if (ffmpeg && extname(masterClipPath).toLowerCase() === ".mov") {
+    const masterProxyClipPath = resolve(masterDir, `${run.id}-proxy.mp4`);
+    await runCmd([
+      ffmpeg,
+      "-y",
+      "-i",
+      masterClipPath,
+      "-c:v",
+      "libx264",
+      "-preset",
+      "fast",
+      "-profile:v",
+      "high",
+      "-pix_fmt",
+      "yuv420p",
+      masterProxyClipPath,
+    ]);
+    run.artifacts.masterProxyClip = masterProxyClipPath;
+  } else if (extname(masterClipPath).toLowerCase() === ".mp4") {
+    run.artifacts.masterProxyClip = masterClipPath; // mp4 is already playable
+  }
+
   run.cost.push({
     stage: "interpolate",
     provider: "pass-through",

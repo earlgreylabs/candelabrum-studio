@@ -3,6 +3,7 @@ import { ProviderRegistry } from "@/core/factory";
 import type { VideoProvider } from "@/core/providers";
 import { ManualInboxVideoProvider } from "@/providers/video/manual-inbox";
 import { VeoVideoProvider } from "@/providers/video/veo";
+import { WaveSpeedVideoProvider } from "@/providers/video/wavespeed";
 
 export const videoRegistry = new ProviderRegistry<VideoProvider>("video");
 
@@ -20,6 +21,14 @@ videoRegistry.register("veo", () => {
   return new VeoVideoProvider(modelId, apiKey);
 });
 
-export function resolveVideo(settings: Settings): VideoProvider {
-  return videoRegistry.resolve(settings.providers.video);
+videoRegistry.register("wavespeed", () => {
+  const apiKey = process.env.WAVESPEED_API_KEY;
+  if (!apiKey) {
+    throw new Error("WAVESPEED_API_KEY is required to use the wavespeed video provider");
+  }
+  return new WaveSpeedVideoProvider(apiKey);
+});
+
+export function resolveVideo(settings: Settings, override?: string): VideoProvider {
+  return videoRegistry.resolve(override || settings.providers.video);
 }

@@ -26,15 +26,26 @@ const ASPECT_RATIO: Record<Orientation, `${number}:${number}`> = {
 export class FalImageProvider implements ImageProvider {
   constructor(private readonly model: ImageModel) {}
 
-  async generate(runId: string, runDir: string, spec: ShotSpec): Promise<ImageArtifact> {
+  async generate(
+    runId: string,
+    runDir: string,
+    spec: ShotSpec,
+    onPayload?: (payload: any) => void,
+  ): Promise<ImageArtifact> {
     await mkdir(runDir, { recursive: true });
     console.log(`[fal] Generating base image for run ${runId}...`);
 
-    const { image } = await generateImage({
-      model: this.model,
+    const payload = {
+      model: modelIdOf(this.model),
       prompt: spec.imagePrompt,
       aspectRatio: ASPECT_RATIO[spec.orientation],
       ...(spec.seedHint !== undefined ? { seed: spec.seedHint } : {}),
+    };
+    onPayload?.(payload);
+
+    const { image } = await generateImage({
+      ...payload,
+      model: this.model,
     });
 
     const ext = image.mediaType === "image/jpeg" ? ".jpg" : ".png";
@@ -48,6 +59,7 @@ export class FalImageProvider implements ImageProvider {
       provider: "fal",
       model: modelIdOf(this.model),
       costUsd: ESTIMATED_COST_USD,
+      payload,
     };
   }
 }

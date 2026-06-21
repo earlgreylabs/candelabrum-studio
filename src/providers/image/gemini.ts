@@ -27,16 +27,27 @@ const ASPECT_RATIO: Record<Orientation, "9:16" | "16:9"> = {
 export class GeminiImageProvider implements ImageProvider {
   constructor(private readonly model: LanguageModel) {}
 
-  async generate(runId: string, runDir: string, spec: ShotSpec): Promise<ImageArtifact> {
+  async generate(
+    runId: string,
+    runDir: string,
+    spec: ShotSpec,
+    onPayload?: (payload: any) => void,
+  ): Promise<ImageArtifact> {
     await mkdir(runDir, { recursive: true });
     console.log(`[gemini] Generating base image for run ${runId}...`);
 
-    const { files } = await generateText({
-      model: this.model,
+    const payload = {
+      model: modelIdOf(this.model),
       prompt: spec.imagePrompt,
       providerOptions: {
         google: { imageConfig: { aspectRatio: ASPECT_RATIO[spec.orientation] } },
       },
+    };
+    onPayload?.(payload);
+
+    const { files } = await generateText({
+      ...payload,
+      model: this.model,
     });
 
     const imageFile = files.find((file) => file.mediaType.startsWith("image/"));
@@ -55,6 +66,7 @@ export class GeminiImageProvider implements ImageProvider {
       provider: "gemini",
       model: modelIdOf(this.model),
       costUsd: ESTIMATED_COST_USD,
+      payload,
     };
   }
 }

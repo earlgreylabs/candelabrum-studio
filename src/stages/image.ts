@@ -18,5 +18,6 @@ export const image: Stage = async (run, ctx) => {
     provider: artifact.provider,
     model: artifact.model,
     amountUsd: artifact.costUsd,
+    payload: artifact.payload,
   });
 };

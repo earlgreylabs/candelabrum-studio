@@ -6,6 +6,7 @@ import type { ImageProvider } from "@/core/providers";
 import { FalImageProvider } from "@/providers/image/fal";
 import { GeminiImageProvider } from "@/providers/image/gemini";
 import { ManualInboxImageProvider } from "@/providers/image/manual-inbox";
+import { WaveSpeedImageProvider } from "@/providers/image/wavespeed";
 
 export const imageRegistry = new ProviderRegistry<ImageProvider>("image");
 
@@ -25,6 +26,14 @@ imageRegistry.register("gemini", () => {
   return new GeminiImageProvider(google(modelId));
 });
 
-export function resolveImage(settings: Settings): ImageProvider {
-  return imageRegistry.resolve(settings.providers.image);
+imageRegistry.register("wavespeed", () => {
+  const apiKey = process.env.WAVESPEED_API_KEY;
+  if (!apiKey) {
+    throw new Error("WAVESPEED_API_KEY is required to use the wavespeed image provider");
+  }
+  return new WaveSpeedImageProvider(apiKey);
+});
+
+export function resolveImage(settings: Settings, override?: string): ImageProvider {
+  return imageRegistry.resolve(override || settings.providers.image);
 }

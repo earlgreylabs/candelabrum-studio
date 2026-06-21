@@ -63,7 +63,15 @@ export async function passGate(
     if (!run.concept) {
       throw new Error(`run ${run.id} has no concept to finalise at gate_a`);
     }
-    run.shotSpec = await ctx.director.finalise(run.concept, run.profile.orientation, ctx.style);
+    let finalisePayload: any = undefined;
+    run.shotSpec = await ctx.director.finalise(
+      run.concept,
+      run.profile.orientation,
+      ctx.style,
+      (payload) => {
+        finalisePayload = payload;
+      },
+    );
     // Concept is no longer needed after finalisation
     run.concept = undefined;
     // "Refine text": the director turns the concept into the shot spec prompts.
@@ -72,6 +80,7 @@ export async function passGate(
       provider: ctx.settings.providers.director,
       model: ctx.director.modelId,
       amountUsd: 0,
+      payload: finalisePayload,
     });
   }
 
@@ -105,11 +114,21 @@ export async function revise(run: Run, ctx: PipelineContext, instruction: string
   }
 
   ctx.log(`Revise concept: ${instruction}`);
-  run.concept = await ctx.director.revise(run.concept, instruction);
+  let revisePayload: any = undefined;
+  run.concept = await ctx.director.revise(run.concept, instruction, (payload) => {
+    revisePayload = payload;
+  });
   run.events.push({
     at: new Date().toISOString(),
     type: "operator",
     note: `revised concept: ${instruction}`,
+  });
+  run.cost.push({
+    stage: "revise",
+    provider: ctx.settings.providers.director,
+    model: ctx.director.modelId,
+    amountUsd: 0,
+    payload: revisePayload,
   });
 
   await ctx.store.save(run);
@@ -151,6 +170,22 @@ export async function reject(run: Run, ctx: PipelineContext, note?: string): Pro
     throw new Error(`run ${run.id} is already terminal (status: ${run.status})`);
   }
   transition(run, "rejected", "operator", note ?? "rejected");
+  await ctx.store.save(run);
+  return run;
+}
+
+/** Recover a failed run back to its previous status before it failed. */
+export async function recover(run: Run, ctx: PipelineContext): Promise<Run> {
+  if (run.status !== "failed") {
+    throw new Error(`run ${run.id} is not failed (status: ${run.status})`);
+  }
+  // Find the last event where it transitioned to "failed"
+  const failEvent = run.events[run.events.length - 1];
+  if (!failEvent || failEvent.to !== "failed" || !failEvent.from) {
+    throw new Error(`cannot determine previous status before failure for run ${run.id}`);
+  }
+  
+  transition(run, failEvent.from, "operator", "recovered from failure");
   await ctx.store.save(run);
   return run;
 }
