@@ -18,6 +18,7 @@ export const RUN_STATUSES = [
   "gate_a", // human: approve the concept
   "imaging", // stage 2: render the base still
   "gate_a5", // human: approve the base image (cheap re-roll before video spend)
+  "upscaling", // stage 2.5: AI upscaling for crispness
   "animating", // stage 3: image -> video (async)
   "interpolating", // stage 4: local GPU -> high-fps master
   "gate_b", // human: approve the finished clip
@@ -37,7 +38,8 @@ export const NEXT_STATUS: Record<RunStatus, RunStatus | null> = {
   directing: "gate_a",
   gate_a: "imaging",
   imaging: "gate_a5",
-  gate_a5: "animating",
+  gate_a5: "upscaling",
+  upscaling: "animating",
   animating: "interpolating",
   interpolating: "gate_b",
   gate_b: "captioning",
@@ -77,6 +79,7 @@ export type ShotSpec = z.infer<typeof shotSpecSchema>;
 
 const runArtifactsSchema = z.object({
   image: z.string().optional(),
+  upscaledImage: z.string().optional(),
   rawClip: z.string().optional(),
   masterClip: z.string().optional(),
   exportPackage: z.string().optional(),

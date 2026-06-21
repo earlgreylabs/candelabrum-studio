@@ -11,11 +11,13 @@ import { caption } from "@/stages/caption";
 import { direct } from "@/stages/direct";
 import { exportPackage } from "@/stages/export";
 import { image } from "@/stages/image";
+import { upscale } from "@/stages/upscale";
 import { interpolate } from "@/stages/interpolate";
 
 export const STAGES: Partial<Record<RunStatus, Stage>> = {
   directing: direct,
   imaging: image,
+  upscaling: upscale,
   animating: animate,
   interpolating: interpolate,
   captioning: caption,

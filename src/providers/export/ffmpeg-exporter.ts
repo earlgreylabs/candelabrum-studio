@@ -17,23 +17,46 @@ export class FfmpegExporter implements Exporter {
       throw new Error(`[FfmpegExporter] No master clip found in run ${run.id}`);
     }
 
-    const ext = masterClipPath.substring(masterClipPath.lastIndexOf("."));
-    const dummyMaster = resolve(outDir, `master${ext}`);
+    const finalMp4 = resolve(outDir, `${run.id}.mp4`);
 
     const ffmpegPath = Bun.which("ffmpeg");
     if (!ffmpegPath) {
       console.log(`[FfmpegExporter] ffmpeg not found, passing through master clip.`);
-      await copyFile(masterClipPath, dummyMaster);
+      await copyFile(masterClipPath, finalMp4);
       return { dir: outDir };
     }
 
-    console.log(`[FfmpegExporter] Running ffmpeg to encode...`);
-    // In a real implementation we would run ffmpeg here to generate the ProRes master and FCPXML
-    // For now we simulate it since complex ffmpeg arguments are beyond the scope of this slice
-    const proc = Bun.spawn([ffmpegPath, "-version"], { stdout: "ignore", stderr: "ignore" });
+    const lutPath = resolve(process.cwd(), "assets/luts/cinematic.cube");
+    
+    console.log(`[FfmpegExporter] Burning LUT and encoding H.264...`);
+    const proc = Bun.spawn(
+      [
+        ffmpegPath,
+        "-y",
+        "-i",
+        masterClipPath,
+        "-vf",
+        `lut3d=${lutPath}`,
+        "-c:v",
+        "libx264",
+        "-preset",
+        "fast",
+        "-profile:v",
+        "high",
+        "-b:v",
+        "15M",
+        "-pix_fmt",
+        "yuv420p",
+        finalMp4,
+      ],
+      { stdout: "ignore", stderr: "pipe" },
+    );
     await proc.exited;
 
-    await copyFile(masterClipPath, dummyMaster);
+    if (proc.exitCode !== 0) {
+      const stderr = (await new Response(proc.stderr).text()).trim();
+      throw new Error(`ffmpeg exited ${proc.exitCode}: ${stderr.slice(-400)}`);
+    }
 
     return { dir: outDir };
   }

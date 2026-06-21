@@ -25,6 +25,24 @@ export function RunList({ runs, status }: RunListProps) {
       <main className="flex-1">
         <div className="mb-6 flex items-center justify-between">
           <h2 className="text-xl font-semibold">Active Runs</h2>
+          <button
+            onClick={async (e) => {
+              const btn = e.currentTarget;
+              btn.disabled = true;
+              btn.innerText = "Creating...";
+              try {
+                await fetch("/api/runs", { method: "POST" });
+              } catch (err) {
+                console.error("Failed to create run", err);
+              } finally {
+                btn.disabled = false;
+                btn.innerText = "New Run";
+              }
+            }}
+            className="rounded bg-accent px-4 py-2 text-sm font-semibold text-white hover:bg-accent/90 transition-colors disabled:opacity-50"
+          >
+            New Run
+          </button>
         </div>
 
         {runs.length === 0 ? (

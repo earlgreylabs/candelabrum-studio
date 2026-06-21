@@ -13,11 +13,13 @@ export const animate: Stage = async (run, ctx) => {
   const rendersRawDir = resolve(ctx.settings.paths.renders, "raw");
   await mkdir(rendersRawDir, { recursive: true });
 
+  const sourceImage = run.artifacts.upscaledImage ?? run.artifacts.image;
+
   const artifact = await ctx.video.animate(
     run.id,
     rendersRawDir,
     run.shotSpec,
-    run.artifacts.image,
+    sourceImage,
   );
 
   run.artifacts.rawClip = artifact.path;

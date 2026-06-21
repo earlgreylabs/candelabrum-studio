@@ -7,9 +7,9 @@ description = "Deep-space vistas, luminous nebulae, sleek lone vessels, vast sca
 
 [prompt]
 # `{subject}` is filled by the director per run; the rest scaffolds the look.
-imageScaffold = "A {subject}, cinematic deep-space sci-fi, volumetric nebula light, intricate detail, high dynamic range, crisp focus, dramatic scale, painterly realism, 8k"
+imageScaffold = "A {subject}, hyper-realistic, Unreal Engine 5 render, raw photography, razor-sharp focus, volumetric nebula light, intricate detail, vivid high-contrast colors, dramatic scale, 8k"
 motionScaffold = "Slow cinematic forward camera push; the {subject} holds steady while the cosmos drifts past; subtle nebula parallax; stable structure, no warping"
-negative = "blurry, low detail, melting structure, warped geometry, text, watermark, oversaturated"
+negative = "soft, blurry, washed out, low contrast, painting, illustration, low detail, melting structure, warped geometry, text, watermark"
 
 [caption]
 tiktok = "Short, punchy, 1-2 lines with a first-line hook. 3-5 niche hashtags (#scifi #spaceart #aiart)."

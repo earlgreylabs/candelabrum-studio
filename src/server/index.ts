@@ -12,7 +12,7 @@ import {
   revise as reviseRun,
 } from "@/core/orchestrator";
 import type { PipelineContext } from "@/core/pipeline";
-import { type Run, transition } from "@/core/run";
+import { type Run, transition, createRun } from "@/core/run";
 import { RunStore } from "@/core/store";
 import { resolveDirector } from "@/providers/director";
 import { resolveExporter } from "@/providers/export";
@@ -80,6 +80,34 @@ app.get("/api/runs", async (c) => {
   const store = new RunStore(settings.paths.runs);
   const runs = await store.list();
   return c.json({ runs });
+});
+
+// POST /api/runs
+app.post("/api/runs", async (c) => {
+  const settings = await loadSettings(configDir);
+  const store = new RunStore(settings.paths.runs);
+  
+  let orientation: any = "portrait";
+  let styleId: string | undefined = "cosmic-scifi";
+  let lore: string | undefined;
+
+  if (c.req.header("content-type")?.includes("application/json")) {
+    const body = await c.req.json();
+    if (body.orientation) orientation = body.orientation;
+    if (body.style) styleId = body.style;
+    if (body.lore) lore = body.lore;
+  }
+
+  try {
+    const run = createRun(settings, { orientation, style: styleId, lore });
+    await store.save(run);
+    const ctx = await buildContext(settings, store, run);
+    advanceInBackground(run, ctx);
+    return c.json({ run }, 201);
+  } catch (err) {
+    console.error("Failed to create run:", err);
+    return c.json({ error: err instanceof Error ? err.message : String(err) }, 400);
+  }
 });
 
 // GET /api/runs/events - SSE endpoint. Must be registered before `/api/runs/:id`,
