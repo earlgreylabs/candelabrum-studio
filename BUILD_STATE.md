@@ -16,9 +16,9 @@ Rules:
 
 ## Now
 
-- Milestone: Phase 1 pipeline complete (Slices 1-7).
-- Last verified checkpoint: Slice 7. 4 gates green + 21 tests. All stages (`direct`, `image`, `animate`, `interpolate`, `caption`, `export`) are fully implemented and integrated.
-- Next step (start here): Move on to the React + Vite dashboard UI.
+- Milestone: Phase 2 scaffold complete. React + Vite + Tailwind v4 + Hono server wired up.
+- Last verified checkpoint: Dashboard scaffold. 4 gates green + 21 tests. `bun run dev` spins up Hono on port 3000 and Vite on 5173, with API proxying.
+- Next step (start here): Wire up the React UI components to the RunStore. Add API endpoints in Hono to list runs and stream SSE progress.
 - Blockers: none.
 
 ## Decisions
@@ -42,6 +42,7 @@ Rules:
 - 2026-06-21: slice 3 (image) done + verified — `ImageProvider` interface + `ManualInbox` adapter + real `image` stage; 20 tests; CLI correctly uses the manual inbox and advances to gate_a5.
 - 2026-06-21: slice 4 (animate) done + verified — `VideoProvider` interface + `ManualInbox` adapter + real `animate` stage; 21 tests; CLI correctly uses the manual inbox for video.
 - 2026-06-21: slices 5-7 (interpolate, caption, export) done + verified — local subprocess execution built for `rife-ncnn-vulkan` and `ffmpeg`, `Exporter` interface defined, real stages implemented. All pipeline slices complete.
+- 2026-06-21: Phase 2 dashboard scaffold done + verified — Hono server, React 19 + Vite 8+, Tailwind CSS v4 configured with DESIGN.md tokens.
 
 ## Archive
 

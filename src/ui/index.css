@@ -1,0 +1,24 @@
+@import "tailwindcss";
+
+@theme {
+  /* Colors from DESIGN.md */
+  --color-background: #0c0c0e;
+  --color-surface: #15151a;
+  --color-surface-raised: #1c1c22;
+  --color-border: #2a2a31;
+  --color-primary: #eceae6;
+  --color-secondary: #9a968e;
+  --color-faint: #6b6862;
+  --color-accent: #e3a93c;
+  --color-accent-hover: #f0c063;
+  --color-accent-active: #c2882b;
+  --color-accent-foreground: #1a1505;
+  --color-status-rendering: #5ab0c9;
+  --color-status-ready: #5ba66e;
+  --color-status-warning: #e07b39;
+  --color-status-danger: #c4452e;
+
+  /* Typography from DESIGN.md */
+  --font-sans: "Inter", sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+}
