@@ -37,8 +37,13 @@ export async function advance(run: Run, ctx: PipelineContext): Promise<Run> {
   return run;
 }
 
-/** Pass the current gate, then advance to the next gate or terminal state. */
-export async function approve(
+/**
+ * Pass the current gate into the next (pre-stage) status and persist, without
+ * running the next stage. Callers that must not block on a long-running stage
+ * (e.g. the dashboard API, where a stage may be a `ManualInbox` awaiting a file
+ * drop) use this, then drive `advance` separately in the background.
+ */
+export async function passGate(
   run: Run,
   ctx: PipelineContext,
   note?: string,
@@ -69,6 +74,17 @@ export async function approve(
   }
   transition(run, next, "operator", note ?? "approved");
   await ctx.store.save(run);
+  return run;
+}
+
+/** Pass the current gate, then advance to the next gate or terminal state. */
+export async function approve(
+  run: Run,
+  ctx: PipelineContext,
+  note?: string,
+  caption?: string,
+): Promise<Run> {
+  await passGate(run, ctx, note, caption);
   return advance(run, ctx);
 }
 
@@ -93,8 +109,12 @@ export async function revise(run: Run, ctx: PipelineContext, instruction: string
   return run;
 }
 
-/** Clear artifacts and step backward to retry generation. */
-export async function regenerate(run: Run, ctx: PipelineContext): Promise<Run> {
+/**
+ * Clear artifacts and step backward to retry generation, persisting without
+ * running the retried stage. Like `passGate`, this lets the API return before a
+ * potentially blocking stage runs; the caller drives `advance` separately.
+ */
+export async function prepRegenerate(run: Run, ctx: PipelineContext): Promise<Run> {
   if (run.status === "gate_a5") {
     // Re-roll image
     run.artifacts.image = undefined;
@@ -109,6 +129,12 @@ export async function regenerate(run: Run, ctx: PipelineContext): Promise<Run> {
   }
 
   await ctx.store.save(run);
+  return run;
+}
+
+/** Step backward to retry generation, then advance through the retried stage. */
+export async function regenerate(run: Run, ctx: PipelineContext): Promise<Run> {
+  await prepRegenerate(run, ctx);
   return advance(run, ctx);
 }
 

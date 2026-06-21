@@ -1,8 +1,11 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<!-- Inline background + color-scheme paint dark on first frame, before Tailwind's
+     CSS loads, so reloads don't flash white. Value mirrors --color-background. -->
+<html lang="en" class="dark" style="background-color: #0c0c0e; color-scheme: dark">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="dark" />
     <title>Candelabrum Studio</title>
   </head>
   <body class="bg-background text-primary antialiased font-sans">

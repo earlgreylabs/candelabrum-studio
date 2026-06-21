@@ -1,4 +1,4 @@
-import { beforeAll, describe, expect, test } from "bun:test";
+import { afterAll, describe, expect, test } from "bun:test";
 import { rm } from "node:fs/promises";
 import { resolve } from "node:path";
 import { loadSettings } from "@/core/config";
@@ -6,13 +6,20 @@ import { createRun, type Run, transition } from "@/core/run";
 import { RunStore } from "@/core/store";
 import app from "./index";
 
-const TEST_RUNS_DIR = resolve(process.cwd(), "config", "runs");
+const CONFIG_DIR = resolve(process.cwd(), "config");
+// The endpoints read from the live runs dir, so runs the tests create land there
+// too. Track them and remove exactly those — never the whole directory, which
+// holds the operator's real runs.
+const createdRunIds: string[] = [];
 
 describe("API Endpoints", () => {
-  beforeAll(async () => {
-    try {
-      await rm(TEST_RUNS_DIR, { recursive: true, force: true });
-    } catch {}
+  afterAll(async () => {
+    const settings = await loadSettings(CONFIG_DIR);
+    await Promise.all(
+      createdRunIds.map((id) =>
+        rm(resolve(settings.paths.runs, id), { recursive: true, force: true }),
+      ),
+    );
   });
 
   test("GET /api/health", async () => {
@@ -22,11 +29,12 @@ describe("API Endpoints", () => {
   });
 
   test("POST /api/runs/:id/reject", async () => {
-    const settings = await loadSettings(resolve(process.cwd(), "config"));
+    const settings = await loadSettings(CONFIG_DIR);
     const store = new RunStore(settings.paths.runs);
 
     // Create a mock run and persist it in gate_a
     const run = createRun(settings, { orientation: "portrait" });
+    createdRunIds.push(run.id);
     transition(run, "gate_a", "test");
     await store.save(run);
 

@@ -12,7 +12,7 @@ ready = "./ready"
 # Each name resolves to an adapter. `manual` is the ManualInbox fallback used
 # wherever only a free web tier exists; swapping to a paid API is config, not code.
 director = "claude"
-image = "manual"
+image = "gemini" # Nano Banana (Gemini) image gen. Alternatives: "fal" (FLUX), "manual" (drop a file).
 video = "manual"
 
 [targets]

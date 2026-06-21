@@ -1,6 +1,23 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import type { Run } from "@/core/run";
+import type { Run, RunStatus } from "@/core/run";
+
+// Manual (ManualInbox) stages pause the run until the operator drops a file into
+// an inbox directory. These mirror the paths the adapters create on disk.
+const MANUAL_DROP: Partial<
+  Record<RunStatus, { label: string; accepts: string; dir: (id: string) => string }>
+> = {
+  imaging: { label: "image", accepts: ".png / .jpg", dir: (id) => `runs/${id}/inbox` },
+  animating: { label: "video", accepts: ".mp4 / .mov", dir: (id) => `renders/raw/${id}-inbox` },
+};
+
+const TERMINAL_STATUSES: RunStatus[] = ["ready", "rejected", "failed"];
+const GATE_STATUSES: RunStatus[] = ["gate_a", "gate_a5", "gate_b"];
+
+async function errorMessage(res: Response, fallback: string): Promise<string> {
+  const data = (await res.json().catch(() => null)) as { error?: string } | null;
+  return data?.error ?? `${fallback} (HTTP ${res.status})`;
+}
 
 export function RunDetail() {
   const { id } = useParams<{ id: string }>();
@@ -35,6 +52,17 @@ export function RunDetail() {
     fetchRun();
   }, [fetchRun]);
 
+  // While the run is mid-pipeline (e.g. awaiting a manual drop), poll so the view
+  // reflects stage transitions without a manual refresh.
+  useEffect(() => {
+    if (!run) return;
+    const processing =
+      !GATE_STATUSES.includes(run.status) && !TERMINAL_STATUSES.includes(run.status);
+    if (!processing) return;
+    const interval = setInterval(fetchRun, 2500);
+    return () => clearInterval(interval);
+  }, [run, fetchRun]);
+
   const handleAction = async (action: "advance" | "reject") => {
     if (!run) return;
     setActionLoading(true);
@@ -50,8 +78,7 @@ export function RunDetail() {
         body,
       });
       if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || "Action failed");
+        throw new Error(await errorMessage(res, "Action failed"));
       }
       navigate("/");
     } catch (err) {
@@ -70,8 +97,7 @@ export function RunDetail() {
         body: JSON.stringify({ instruction: reviseInstruction }),
       });
       if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || "Revise failed");
+        throw new Error(await errorMessage(res, "Revise failed"));
       }
       setReviseInstruction("");
       fetchRun(); // Re-fetch to show new concept
@@ -88,8 +114,7 @@ export function RunDetail() {
     try {
       const res = await fetch(`/api/runs/${run.id}/regenerate`, { method: "POST" });
       if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || "Regenerate failed");
+        throw new Error(await errorMessage(res, "Regenerate failed"));
       }
       navigate("/");
     } catch (err) {
@@ -102,6 +127,7 @@ export function RunDetail() {
   if (error || !run) return <div className="p-8 text-status-danger">{error || "Not found"}</div>;
 
   const isGate = ["gate_a", "gate_a5", "gate_b"].includes(run.status);
+  const drop = MANUAL_DROP[run.status];
 
   return (
     <div className="flex min-h-screen flex-col bg-background p-8 text-primary font-sans">
@@ -127,6 +153,24 @@ export function RunDetail() {
 
       <main className="flex-1 grid gap-8 md:grid-cols-[2fr_1fr]">
         <div className="space-y-8">
+          {/* Awaiting manual drop (ManualInbox stages) */}
+          {drop && (
+            <div className="rounded-lg border border-accent/40 bg-surface p-6 space-y-3">
+              <h3 className="text-lg font-medium text-accent border-b border-border pb-2">
+                Awaiting manual {drop.label}
+              </h3>
+              <p className="text-sm text-secondary">
+                This stage uses a manual inbox. Drop the {drop.label} ({drop.accepts}) into:
+              </p>
+              <code className="block break-all rounded border border-border bg-background p-3 font-mono text-sm text-primary">
+                {drop.dir(run.id)}/
+              </code>
+              <p className="text-xs text-secondary">
+                The run advances automatically once the file lands.
+              </p>
+            </div>
+          )}
+
           {/* Concept Display (Gate A) */}
           {run.concept && (
             <div className="rounded-lg border border-border bg-surface p-6 space-y-4">

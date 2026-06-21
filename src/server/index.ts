@@ -5,13 +5,14 @@ import { serveStatic } from "hono/bun";
 import { streamSSE } from "hono/streaming";
 import { loadSettings, loadStyle, type Settings } from "@/core/config";
 import {
-  approve,
-  regenerate as regenerateRun,
+  advance,
+  passGate,
+  prepRegenerate,
   reject as rejectRun,
   revise as reviseRun,
 } from "@/core/orchestrator";
 import type { PipelineContext } from "@/core/pipeline";
-import type { Run } from "@/core/run";
+import { type Run, transition } from "@/core/run";
 import { RunStore } from "@/core/store";
 import { resolveDirector } from "@/providers/director";
 import { resolveExporter } from "@/providers/export";
@@ -49,6 +50,25 @@ async function buildContext(
       });
     },
   };
+}
+
+/**
+ * Drive `advance` outside the request/response cycle. A stage may block
+ * indefinitely (a `ManualInbox` awaiting a file drop), so the endpoint returns
+ * as soon as the gate transition is persisted and progress is observed over the
+ * SSE stream. On failure the run is marked `failed` and persisted, since nothing
+ * awaits this promise.
+ */
+function advanceInBackground(run: Run, ctx: PipelineContext): void {
+  void advance(run, ctx).catch(async (err) => {
+    console.error(`Background advance failed for run ${run.id}:`, err);
+    try {
+      transition(run, "failed", "stage", err instanceof Error ? err.message : String(err));
+      await ctx.store.save(run);
+    } catch (saveErr) {
+      console.error(`Failed to persist failed state for run ${run.id}:`, saveErr);
+    }
+  });
 }
 
 // Basic health check
@@ -119,8 +139,11 @@ app.post("/api/runs/:id/advance", async (c) => {
       caption = body.caption;
     }
 
-    const updated = await approve(run, ctx, note, caption);
-    return c.json({ run: updated });
+    // Pass the gate synchronously, then advance through the (possibly blocking)
+    // next stage in the background; the dashboard tracks progress over SSE.
+    const updated = await passGate(run, ctx, note, caption);
+    advanceInBackground(updated, ctx);
+    return c.json({ run: updated }, 202);
   } catch (err) {
     console.error(`Failed to advance run ${id}:`, err);
     return c.json({ error: err instanceof Error ? err.message : String(err) }, 400);
@@ -184,8 +207,11 @@ app.post("/api/runs/:id/regenerate", async (c) => {
     const run = await store.load(id);
     const ctx = await buildContext(settings, store, run);
 
-    const updated = await regenerateRun(run, ctx);
-    return c.json({ run: updated });
+    // Step back synchronously, then re-run the (possibly blocking) stage in the
+    // background; the dashboard tracks progress over SSE.
+    const updated = await prepRegenerate(run, ctx);
+    advanceInBackground(updated, ctx);
+    return c.json({ run: updated }, 202);
   } catch (err) {
     console.error(`Failed to regenerate run ${id}:`, err);
     return c.json({ error: err instanceof Error ? err.message : String(err) }, 400);
