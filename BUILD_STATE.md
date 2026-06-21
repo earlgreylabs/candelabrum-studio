@@ -18,7 +18,7 @@ Rules:
 
 - Milestone: Phase 2 scaffold complete. React + Vite + Tailwind v4 + Hono server wired up.
 - Last verified checkpoint: Dashboard scaffold. 4 gates green + 21 tests. `bun run dev` spins up Hono on port 3000 and Vite on 5173, with API proxying.
-- Next step (start here): Build the detailed Run View in the dashboard. Implement Hono API endpoints for Gate approvals (`advance`, `reject`, `revise`) and wire the UI components to allow human operator actions for Gate A, A.5, and B.
+- Next step (start here): Final polish for v1 completion. Add editable caption field in the RunDetail view for Gate B, trigger macOS notifications upon reaching Gate B, and perform a full end-to-end test of the Metadata record.
 - Blockers: none.
 
 ## Decisions
@@ -37,6 +37,7 @@ Rules:
 
 <!-- one terse line per finished slice: "YYYY-MM-DD: slice N done + verified" -->
 
+- 2026-06-21: Dashboard Gate Interactions done + verified — added React Router, RunDetail view, and Hono endpoints for advance/reject, verified with tests.
 - 2026-06-21: Dashboard runs list done + verified — wired React UI to Hono backend with SSE progress streaming.
 - 2026-06-20: slice 1 (skeleton) done + verified — config/run/store/orchestrator/CLI, stubbed stages, 16 tests, real new→ready run across processes.
 - 2026-06-20: slice 2 (director) done + verified — `DirectorLLM` + Claude adapter (AI SDK), real `direct` stage, stage registry, injected context; 19 tests incl. 3 mock-model fixtures; keyless CLI reaches adapter, run persists at `directing`.
