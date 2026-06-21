@@ -3,7 +3,7 @@ import { resolve } from "node:path";
 import { Hono } from "hono";
 import { serveStatic } from "hono/bun";
 import { streamSSE } from "hono/streaming";
-import { loadSettings, loadStyle, type Settings, type Style } from "@/core/config";
+import { loadSettings, loadStyle, type Settings } from "@/core/config";
 import {
   approve,
   regenerate as regenerateRun,
@@ -69,7 +69,7 @@ app.get("/api/runs/:id", async (c) => {
   try {
     const run = await store.load(c.req.param("id"));
     return c.json({ run });
-  } catch (err) {
+  } catch {
     return c.json({ error: "Run not found" }, 404);
   }
 });
@@ -201,7 +201,7 @@ app.get("/assets/renders/*", async (c) => {
     if (await file.exists()) {
       return new Response(file);
     }
-  } catch (e) {
+  } catch {
     // fallthrough to 404
   }
   return c.text("Not Found", 404);
@@ -216,7 +216,7 @@ app.get("*", async (c) => {
   try {
     const html = await readFile(resolve(process.cwd(), "dist/public/index.html"), "utf8");
     return c.html(html);
-  } catch (e) {
+  } catch {
     return c.text("Not Found", 404);
   }
 });

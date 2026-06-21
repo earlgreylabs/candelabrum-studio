@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import type { Run } from "@/core/run";
 
@@ -12,7 +12,7 @@ export function RunDetail() {
   const [reviseInstruction, setReviseInstruction] = useState("");
   const [editedCaption, setEditedCaption] = useState("");
 
-  const fetchRun = () => {
+  const fetchRun = useCallback(() => {
     fetch(`/api/runs/${id}`)
       .then((res) => {
         if (!res.ok) throw new Error("Run not found");
@@ -20,8 +20,8 @@ export function RunDetail() {
       })
       .then((data) => {
         setRun(data.run);
-        if (data.run.shotSpec?.captionDraft && !editedCaption) {
-          setEditedCaption(data.run.shotSpec.captionDraft);
+        if (data.run.shotSpec?.captionDraft) {
+          setEditedCaption((prev) => prev || data.run.shotSpec.captionDraft);
         }
         setLoading(false);
       })
@@ -29,11 +29,11 @@ export function RunDetail() {
         setError(err.message);
         setLoading(false);
       });
-  };
+  }, [id]);
 
   useEffect(() => {
     fetchRun();
-  }, [id]);
+  }, [fetchRun]);
 
   const handleAction = async (action: "advance" | "reject") => {
     if (!run) return;
@@ -157,7 +157,9 @@ export function RunDetail() {
                 loop
                 className={`w-full ${run.profile.orientation === "portrait" ? "aspect-[9/16] max-h-[70vh] object-contain" : "aspect-video"}`}
                 src={`/assets/renders/master/${run.artifacts.masterClip}`}
-              />
+              >
+                <track kind="captions" />
+              </video>
             </div>
           ) : run.artifacts.rawClip ? (
             <div className="rounded-lg border border-border bg-surface overflow-hidden">
@@ -166,7 +168,9 @@ export function RunDetail() {
                 loop
                 className={`w-full ${run.profile.orientation === "portrait" ? "aspect-[9/16] max-h-[70vh] object-contain" : "aspect-video"}`}
                 src={`/assets/renders/raw/${run.artifacts.rawClip}`}
-              />
+              >
+                <track kind="captions" />
+              </video>
             </div>
           ) : run.artifacts.image ? (
             <div className="rounded-lg border border-border bg-surface overflow-hidden p-4 flex justify-center">
@@ -220,6 +224,7 @@ export function RunDetail() {
             {isGate ? (
               <div className="space-y-3">
                 <button
+                  type="button"
                   onClick={() => handleAction("advance")}
                   disabled={actionLoading}
                   className="w-full rounded bg-status-ready/20 text-status-ready border border-status-ready/50 py-2 font-semibold hover:bg-status-ready/30 transition-colors disabled:opacity-50"
@@ -227,6 +232,7 @@ export function RunDetail() {
                   Approve
                 </button>
                 <button
+                  type="button"
                   onClick={() => handleAction("reject")}
                   disabled={actionLoading}
                   className="w-full rounded bg-status-danger/20 text-status-danger border border-status-danger/50 py-2 font-semibold hover:bg-status-danger/30 transition-colors disabled:opacity-50"
@@ -236,8 +242,11 @@ export function RunDetail() {
 
                 {run.status === "gate_a" && (
                   <div className="pt-4 mt-4 border-t border-border">
-                    <label className="block text-sm text-secondary mb-2">Revise Concept</label>
+                    <label htmlFor="revise-concept" className="block text-sm text-secondary mb-2">
+                      Revise Concept
+                    </label>
                     <textarea
+                      id="revise-concept"
                       className="w-full bg-background border border-border rounded p-2 text-sm focus:border-accent outline-none transition-colors mb-2"
                       rows={3}
                       placeholder="e.g. Make it more cyberpunk..."
@@ -245,6 +254,7 @@ export function RunDetail() {
                       onChange={(e) => setReviseInstruction(e.target.value)}
                     />
                     <button
+                      type="button"
                       onClick={handleRevise}
                       disabled={actionLoading || !reviseInstruction.trim()}
                       className="w-full rounded bg-surfaceRaised text-primary border border-border py-2 font-semibold hover:bg-surface transition-colors disabled:opacity-50"
@@ -257,6 +267,7 @@ export function RunDetail() {
                 {(run.status === "gate_a5" || run.status === "gate_b") && (
                   <div className="pt-4 mt-4 border-t border-border">
                     <button
+                      type="button"
                       onClick={handleRegenerate}
                       disabled={actionLoading}
                       className="w-full rounded bg-surfaceRaised text-primary border border-border py-2 font-semibold hover:bg-surface transition-colors disabled:opacity-50"

@@ -16,9 +16,9 @@ Rules:
 
 ## Now
 
-- Milestone: Phase 2 scaffold complete. React + Vite + Tailwind v4 + Hono server wired up.
-- Last verified checkpoint: Dashboard scaffold. 4 gates green + 21 tests. `bun run dev` spins up Hono on port 3000 and Vite on 5173, with API proxying.
-- Next step (start here): Final polish for v1 completion. Add editable caption field in the RunDetail view for Gate B, trigger macOS notifications upon reaching Gate B, and perform a full end-to-end test of the Metadata record.
+- Milestone: v1 feature-complete. Pipeline stages 1-6 + export, three human gates wired through the dashboard (runs list, RunDetail, advance/reject/revise/regenerate, Gate B caption override, macOS notifications, metadata export).
+- Last verified checkpoint: Lint gate cleanup. All 4 gates green (format, lint, tsc, test) + 25 tests pass. `bun run dev` spins up Hono on port 3000 and Vite on 5173, with API proxying.
+- Next step (start here): Gate 5 — exercise the full pipeline against reality (an end-to-end operator-driven render with real/manual-inbox providers) before declaring v1 shipped. Then decide: begin phase 2 (stage 7 auto-publish) or harden v1.
 - Blockers: none.
 
 ## Decisions
@@ -37,6 +37,7 @@ Rules:
 
 <!-- one terse line per finished slice: "YYYY-MM-DD: slice N done + verified" -->
 
+- 2026-06-21: Lint gate cleanup done + verified — the v1 polish commits had landed with the biome lint gate red (9 errors incl. an `as any` violating the no-`any` rule, plus unused imports and RunDetail a11y); fixed all, 4 gates now green + 25 tests. BUILD_STATE `Now` had drifted (claimed "4 gates green + 21 tests").
 - 2026-06-21: Dashboard Gate Interactions done + verified — added React Router, RunDetail view, and Hono endpoints for advance/reject, verified with tests.
 - 2026-06-21: Revise and Regenerate complete + verified — added backwards transitions to orchestrator and UI.
 - 2026-06-21: Final v1 polish complete — added Gate B editable caption, macOS notifications via osascript, and full metadata JSON export.

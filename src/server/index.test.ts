@@ -1,8 +1,8 @@
-import { afterAll, beforeAll, describe, expect, test } from "bun:test";
+import { beforeAll, describe, expect, test } from "bun:test";
 import { rm } from "node:fs/promises";
 import { resolve } from "node:path";
 import { loadSettings } from "@/core/config";
-import { createRun, transition } from "@/core/run";
+import { createRun, type Run, transition } from "@/core/run";
 import { RunStore } from "@/core/store";
 import app from "./index";
 
@@ -39,7 +39,7 @@ describe("API Endpoints", () => {
     const res = await app.fetch(req);
 
     expect(res.status).toBe(200);
-    const data = (await res.json()) as any;
+    const data = (await res.json()) as { run: Run };
     expect(data.run).toBeDefined();
     expect(data.run.id).toBe(run.id);
     expect(data.run.status).toBe("rejected");

@@ -58,7 +58,7 @@ export function RunList({ runs, status }: RunListProps) {
 
                 <h3 className="mb-1 text-lg font-medium text-primary line-clamp-2">
                   {run.shotSpec?.imagePrompt
-                    ? run.shotSpec.imagePrompt.split(".")[0] + "..."
+                    ? `${run.shotSpec.imagePrompt.split(".")[0]}...`
                     : "Drafting Concept..."}
                 </h3>
 
