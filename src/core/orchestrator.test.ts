@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { loadSettings, loadStyle, type Settings, type Style } from "@/core/config";
 import { advance, approve, reject } from "@/core/orchestrator";
 import type { PipelineContext } from "@/core/pipeline";
-import type { DirectorLLM, ImageProvider, VideoProvider } from "@/core/providers";
+import type { DirectorLLM, Exporter, ImageProvider, VideoProvider } from "@/core/providers";
 import { createRun, type Run, transition } from "@/core/run";
 import { RunStore } from "@/core/store";
 
@@ -51,6 +51,14 @@ const fakeVideo: VideoProvider = {
   },
 };
 
+const fakeExport: Exporter = {
+  async package(runId, readyDir) {
+    const dir = join(readyDir, runId);
+    await Bun.write(join(dir, "manifest.json"), "stub");
+    return { dir };
+  },
+};
+
 describe("orchestrator", () => {
   let root: string;
   let settings: Settings;
@@ -78,6 +86,7 @@ describe("orchestrator", () => {
       director: fakeDirector,
       image: fakeImage,
       video: fakeVideo,
+      export: fakeExport,
       log: () => {},
     };
   });
@@ -129,6 +138,7 @@ describe("orchestrator", () => {
       director: fakeDirector,
       image: fakeImage,
       video: fakeVideo,
+      export: fakeExport,
       log: () => {},
     };
     const resumed = await store2.load(run.id);

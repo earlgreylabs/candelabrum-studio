@@ -17,10 +17,11 @@ import { loadSettings, loadStyle, type Settings, type Style } from "@/core/confi
 import { ORIENTATIONS, type Orientation } from "@/core/constants";
 import { advance, approve, reject } from "@/core/orchestrator";
 import type { PipelineContext } from "@/core/pipeline";
-import type { DirectorLLM, ImageProvider, VideoProvider } from "@/core/providers";
+import type { DirectorLLM, Exporter, ImageProvider, VideoProvider } from "@/core/providers";
 import { createRun, type Run } from "@/core/run";
 import { RunStore } from "@/core/store";
 import { resolveDirector } from "@/providers/director";
+import { resolveExporter } from "@/providers/export";
 import { resolveImage } from "@/providers/image";
 import { resolveVideo } from "@/providers/video";
 
@@ -52,9 +53,19 @@ function buildContext(
   director: DirectorLLM,
   image: ImageProvider,
   video: VideoProvider,
+  exportProvider: Exporter,
   style?: Style,
 ): PipelineContext {
-  return { settings, store, director, image, video, style, log: (message) => console.log(message) };
+  return {
+    settings,
+    store,
+    director,
+    image,
+    video,
+    export: exportProvider,
+    style,
+    log: (message) => console.log(message),
+  };
 }
 
 function summarise(run: Run): string {
@@ -94,13 +105,14 @@ async function main(): Promise<void> {
   const director = resolveDirector(settings);
   const image = resolveImage(settings);
   const video = resolveVideo(settings);
+  const exportProvider = resolveExporter();
 
   switch (command) {
     case "new": {
       const styleId = values.style ?? DEFAULT_STYLE;
       const orientation = parseOrientation(values.orientation);
       const style = await loadStyle(CONFIG_DIR, styleId);
-      const ctx = buildContext(settings, store, director, image, video, style);
+      const ctx = buildContext(settings, store, director, image, video, exportProvider, style);
       const run = createRun(settings, { orientation, style: styleId, lore: values.lore });
       await store.save(run);
       await advance(run, ctx);
@@ -128,7 +140,15 @@ async function main(): Promise<void> {
         throw new Error("approve requires a run id");
       }
       const run = await store.load(id);
-      const ctx = buildContext(settings, store, director, image, video, await loadRunStyle(run));
+      const ctx = buildContext(
+        settings,
+        store,
+        director,
+        image,
+        video,
+        exportProvider,
+        await loadRunStyle(run),
+      );
       await approve(run, ctx, values.note);
       console.log(summarise(run));
       return;
@@ -138,7 +158,15 @@ async function main(): Promise<void> {
         throw new Error("reject requires a run id");
       }
       const run = await store.load(id);
-      const ctx = buildContext(settings, store, director, image, video, await loadRunStyle(run));
+      const ctx = buildContext(
+        settings,
+        store,
+        director,
+        image,
+        video,
+        exportProvider,
+        await loadRunStyle(run),
+      );
       await reject(run, ctx, values.note);
       console.log(summarise(run));
       return;
@@ -148,7 +176,15 @@ async function main(): Promise<void> {
         throw new Error("resume requires a run id");
       }
       const run = await store.load(id);
-      const ctx = buildContext(settings, store, director, image, video, await loadRunStyle(run));
+      const ctx = buildContext(
+        settings,
+        store,
+        director,
+        image,
+        video,
+        exportProvider,
+        await loadRunStyle(run),
+      );
       await advance(run, ctx);
       console.log(summarise(run));
       return;

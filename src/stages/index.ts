@@ -7,9 +7,11 @@
 import type { Stage } from "@/core/pipeline";
 import type { RunStatus } from "@/core/run";
 import { animate } from "@/stages/animate";
+import { caption } from "@/stages/caption";
 import { direct } from "@/stages/direct";
+import { exportPackage } from "@/stages/export";
 import { image } from "@/stages/image";
-import { caption, exportPackage, interpolate } from "@/stages/stubs";
+import { interpolate } from "@/stages/interpolate";
 
 export const STAGES: Partial<Record<RunStatus, Stage>> = {
   directing: direct,

@@ -66,3 +66,16 @@ export interface VideoProvider {
     baseImagePath: string,
   ): Promise<VideoArtifact>;
 }
+
+export interface ExportPackage {
+  dir: string;
+}
+
+export interface Exporter {
+  package(
+    runId: string,
+    readyDir: string,
+    spec: ShotSpec,
+    masterClipPath: string,
+  ): Promise<ExportPackage>;
+}

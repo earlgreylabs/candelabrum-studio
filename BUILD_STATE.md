@@ -16,9 +16,9 @@ Rules:
 
 ## Now
 
-- Milestone: Slice 4 — Animate stage: DONE + verified. Next: Slice 5 — Interpolate stage.
-- Last verified checkpoint: Slice 4. 4 gates green + 21 tests (including file-drop tests for `ManualInboxImageProvider` and `ManualInboxVideoProvider`). The animate stage awaits an operator drop, ingests the video, and advances the run towards Gate B.
-- Next step (start here): implement the real `interpolate` stage (which uses `rife-ncnn-vulkan` via a subprocess to convert the raw clip to a high-fps master clip). Keep caption/export stubbed. Verify: gates + tests.
+- Milestone: Phase 1 pipeline complete (Slices 1-7).
+- Last verified checkpoint: Slice 7. 4 gates green + 21 tests. All stages (`direct`, `image`, `animate`, `interpolate`, `caption`, `export`) are fully implemented and integrated.
+- Next step (start here): Move on to the React + Vite dashboard UI.
 - Blockers: none.
 
 ## Decisions
@@ -41,6 +41,7 @@ Rules:
 - 2026-06-20: slice 2 (director) done + verified — `DirectorLLM` + Claude adapter (AI SDK), real `direct` stage, stage registry, injected context; 19 tests incl. 3 mock-model fixtures; keyless CLI reaches adapter, run persists at `directing`.
 - 2026-06-21: slice 3 (image) done + verified — `ImageProvider` interface + `ManualInbox` adapter + real `image` stage; 20 tests; CLI correctly uses the manual inbox and advances to gate_a5.
 - 2026-06-21: slice 4 (animate) done + verified — `VideoProvider` interface + `ManualInbox` adapter + real `animate` stage; 21 tests; CLI correctly uses the manual inbox for video.
+- 2026-06-21: slices 5-7 (interpolate, caption, export) done + verified — local subprocess execution built for `rife-ncnn-vulkan` and `ffmpeg`, `Exporter` interface defined, real stages implemented. All pipeline slices complete.
 
 ## Archive
 
