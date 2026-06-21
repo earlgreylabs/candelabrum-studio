@@ -128,6 +128,9 @@ export function RunDetail() {
 
   const isGate = ["gate_a", "gate_a5", "gate_b"].includes(run.status);
   const drop = MANUAL_DROP[run.status];
+  const totalCost = run.cost.reduce((sum, c) => sum + c.amountUsd, 0);
+  // Stable keys for the (static, append-only) ledger without keying on the index.
+  const costRows = run.cost.map((entry, idx) => ({ entry, key: `${entry.stage}-${idx}` }));
 
   return (
     <div className="flex min-h-screen flex-col bg-background p-8 text-primary font-sans">
@@ -345,13 +348,33 @@ export function RunDetail() {
                 <span className="text-secondary">Created At</span>
                 <span>{new Date(run.createdAt).toLocaleString()}</span>
               </div>
-              <div className="flex justify-between border-t border-border pt-2 mt-2">
-                <span className="text-secondary">Total Cost</span>
-                <span className="font-mono">
-                  ${run.cost.reduce((sum, c) => sum + c.amountUsd, 0).toFixed(2)}
-                </span>
+            </div>
+          </div>
+
+          {/* Per-step cost ledger: which model ran each step and what it cost. */}
+          <div className="rounded-lg border border-border bg-surface p-6 space-y-4">
+            <h3 className="text-lg font-medium text-primary">Cost</h3>
+            <div className="space-y-2 text-sm">
+              {costRows.map(({ entry, key }) => (
+                <div key={key} className="flex items-baseline justify-between gap-3">
+                  <span className="shrink-0 capitalize text-secondary">{entry.stage}</span>
+                  <span
+                    className="flex-1 truncate text-right font-mono text-xs text-faint"
+                    title={entry.model ?? entry.provider}
+                  >
+                    {entry.model ?? entry.provider}
+                  </span>
+                  <span className="shrink-0 font-mono">${entry.amountUsd.toFixed(2)}</span>
+                </div>
+              ))}
+              <div className="flex justify-between border-t border-border pt-2 mt-2 font-medium">
+                <span>Total</span>
+                <span className="font-mono">${totalCost.toFixed(2)}</span>
               </div>
             </div>
+            <p className="text-xs text-faint">
+              Amounts are estimates; real provider charges appear on each provider's billing.
+            </p>
           </div>
         </div>
       </main>
