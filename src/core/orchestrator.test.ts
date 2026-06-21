@@ -56,7 +56,7 @@ const fakeExport: Exporter = {
   async package(run, readyDir) {
     const dir = join(readyDir, run.id);
     await Bun.write(join(dir, "metadata.json"), "stub");
-    return { dir };
+    return { dir, video: join(dir, "video.mp4") };
   },
 };
 

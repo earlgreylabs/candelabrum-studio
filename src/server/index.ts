@@ -252,7 +252,7 @@ app.post("/api/runs/:id/regenerate", async (c) => {
 // than guessing a URL layout. `kind` is allowlisted; the path is pipeline-set,
 // not client-supplied. Lives under /api/ so the Vite dev proxy forwards it (it
 // only proxies /api, not /assets).
-const SERVABLE_ARTIFACTS = ["image", "rawClip", "masterClip"] as const;
+const SERVABLE_ARTIFACTS = ["image", "rawClip", "masterClip", "masterProxyClip", "exportVideo"] as const;
 type ServableArtifact = (typeof SERVABLE_ARTIFACTS)[number];
 
 app.get("/api/runs/:id/asset/:kind", async (c) => {

@@ -196,14 +196,14 @@ export function RunDetail() {
           )}
 
           {/* Artifacts Display */}
-          {run.artifacts.masterClip ? (
+          {run.artifacts.masterProxyClip || run.artifacts.masterClip ? (
             <div className="rounded-lg border border-border bg-surface overflow-hidden">
               <video
                 controls
                 autoPlay
                 loop
                 className={`w-full ${run.profile.orientation === "portrait" ? "aspect-[9/16] max-h-[70vh] object-contain" : "aspect-video"}`}
-                src={`/api/runs/${run.id}/asset/masterClip`}
+                src={`/api/runs/${run.id}/asset/${run.artifacts.masterProxyClip ? 'masterProxyClip' : 'masterClip'}`}
               >
                 <track kind="captions" />
               </video>
@@ -266,6 +266,16 @@ export function RunDetail() {
 
         {/* Sidebar Actions */}
         <div className="space-y-6">
+          <div className="rounded-lg border border-border bg-surface p-6 space-y-4">
+            <h3 className="text-lg font-medium text-primary">Views</h3>
+            <Link
+              to={`/runs/${run.id}/compare`}
+              className="block w-full text-center rounded bg-surfaceRaised text-accent border border-accent/50 py-2 font-semibold hover:bg-surface transition-colors"
+            >
+              Compare Stages
+            </Link>
+          </div>
+
           <div className="rounded-lg border border-border bg-surface p-6 space-y-4">
             <h3 className="text-lg font-medium text-primary">Actions</h3>
             {isGate ? (

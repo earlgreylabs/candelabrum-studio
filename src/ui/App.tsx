@@ -3,6 +3,7 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 import type { Run } from "@/core/run";
 import { RunDetail } from "./RunDetail";
 import { RunList } from "./RunList";
+import { RunCompare } from "./RunCompare";
 
 export function App() {
   const [runs, setRuns] = useState<Run[]>([]);
@@ -42,6 +43,7 @@ export function App() {
       <Routes>
         <Route path="/" element={<RunList runs={runs} status={status} />} />
         <Route path="/runs/:id" element={<RunDetail />} />
+        <Route path="/runs/:id/compare" element={<RunCompare />} />
       </Routes>
     </BrowserRouter>
   );

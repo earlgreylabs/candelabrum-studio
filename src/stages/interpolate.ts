@@ -105,6 +105,7 @@ export const interpolate: Stage = async (run, ctx) => {
       }
       await runCmd(rifeArgs);
       const masterClipPath = resolve(masterDir, `${run.id}.mov`);
+      const masterProxyClipPath = resolve(masterDir, `${run.id}-proxy.mp4`);
       await runCmd([
         ffmpeg,
         "-y",
@@ -120,8 +121,26 @@ export const interpolate: Stage = async (run, ctx) => {
         "yuv422p10le",
         masterClipPath,
       ]);
+      await runCmd([
+        ffmpeg,
+        "-y",
+        "-framerate",
+        String(masterFps),
+        "-i",
+        resolve(outFrames, "%08d.png"),
+        "-c:v",
+        "libx264",
+        "-preset",
+        "fast",
+        "-profile:v",
+        "high",
+        "-pix_fmt",
+        "yuv420p",
+        masterProxyClipPath,
+      ]);
 
       run.artifacts.masterClip = masterClipPath;
+      run.artifacts.masterProxyClip = masterProxyClipPath;
       run.cost.push({
         stage: "interpolate",
         provider: "rife-ncnn-vulkan",

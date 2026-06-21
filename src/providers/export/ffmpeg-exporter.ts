@@ -23,7 +23,7 @@ export class FfmpegExporter implements Exporter {
     if (!ffmpegPath) {
       console.log(`[FfmpegExporter] ffmpeg not found, passing through master clip.`);
       await copyFile(masterClipPath, finalMp4);
-      return { dir: outDir };
+      return { dir: outDir, video: finalMp4 };
     }
 
     const lutPath = resolve(process.cwd(), "assets/luts/cinematic.cube");
@@ -58,6 +58,6 @@ export class FfmpegExporter implements Exporter {
       throw new Error(`ffmpeg exited ${proc.exitCode}: ${stderr.slice(-400)}`);
     }
 
-    return { dir: outDir };
+    return { dir: outDir, video: finalMp4 };
   }
 }

@@ -82,7 +82,9 @@ const runArtifactsSchema = z.object({
   upscaledImage: z.string().optional(),
   rawClip: z.string().optional(),
   masterClip: z.string().optional(),
+  masterProxyClip: z.string().optional(),
   exportPackage: z.string().optional(),
+  exportVideo: z.string().optional(),
 });
 
 const runEventSchema = z.object({

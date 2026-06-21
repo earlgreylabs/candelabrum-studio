@@ -11,5 +11,6 @@ export const exportPackage: Stage = async (run, ctx) => {
   const pkg = await ctx.export.package(run, ctx.settings.paths.ready);
 
   run.artifacts.exportPackage = pkg.dir;
+  run.artifacts.exportVideo = pkg.video;
   run.cost.push({ stage: "export", provider: "ffmpeg", model: "ffmpeg", amountUsd: 0 });
 };

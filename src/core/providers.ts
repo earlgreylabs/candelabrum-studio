@@ -65,6 +65,7 @@ export interface VideoProvider {
 
 export interface ExportPackage {
   dir: string;
+  video: string;
 }
 
 export interface Exporter {
