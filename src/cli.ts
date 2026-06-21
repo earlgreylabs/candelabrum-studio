@@ -17,10 +17,11 @@ import { loadSettings, loadStyle, type Settings, type Style } from "@/core/confi
 import { ORIENTATIONS, type Orientation } from "@/core/constants";
 import { advance, approve, reject } from "@/core/orchestrator";
 import type { PipelineContext } from "@/core/pipeline";
-import type { DirectorLLM } from "@/core/providers";
+import type { DirectorLLM, ImageProvider } from "@/core/providers";
 import { createRun, type Run } from "@/core/run";
 import { RunStore } from "@/core/store";
 import { resolveDirector } from "@/providers/director";
+import { resolveImage } from "@/providers/image";
 
 const CONFIG_DIR = "./config";
 const DEFAULT_STYLE = "cosmic-scifi";
@@ -48,9 +49,10 @@ function buildContext(
   settings: Settings,
   store: RunStore,
   director: DirectorLLM,
+  image: ImageProvider,
   style?: Style,
 ): PipelineContext {
-  return { settings, store, director, style, log: (message) => console.log(message) };
+  return { settings, store, director, image, style, log: (message) => console.log(message) };
 }
 
 function summarise(run: Run): string {
@@ -88,13 +90,14 @@ async function main(): Promise<void> {
   const settings = await loadSettings(CONFIG_DIR);
   const store = new RunStore(settings.paths.runs);
   const director = resolveDirector(settings);
+  const image = resolveImage(settings);
 
   switch (command) {
     case "new": {
       const styleId = values.style ?? DEFAULT_STYLE;
       const orientation = parseOrientation(values.orientation);
       const style = await loadStyle(CONFIG_DIR, styleId);
-      const ctx = buildContext(settings, store, director, style);
+      const ctx = buildContext(settings, store, director, image, style);
       const run = createRun(settings, { orientation, style: styleId, lore: values.lore });
       await store.save(run);
       await advance(run, ctx);
@@ -122,7 +125,7 @@ async function main(): Promise<void> {
         throw new Error("approve requires a run id");
       }
       const run = await store.load(id);
-      const ctx = buildContext(settings, store, director, await loadRunStyle(run));
+      const ctx = buildContext(settings, store, director, image, await loadRunStyle(run));
       await approve(run, ctx, values.note);
       console.log(summarise(run));
       return;
@@ -132,7 +135,7 @@ async function main(): Promise<void> {
         throw new Error("reject requires a run id");
       }
       const run = await store.load(id);
-      const ctx = buildContext(settings, store, director, await loadRunStyle(run));
+      const ctx = buildContext(settings, store, director, image, await loadRunStyle(run));
       await reject(run, ctx, values.note);
       console.log(summarise(run));
       return;
@@ -142,7 +145,7 @@ async function main(): Promise<void> {
         throw new Error("resume requires a run id");
       }
       const run = await store.load(id);
-      const ctx = buildContext(settings, store, director, await loadRunStyle(run));
+      const ctx = buildContext(settings, store, director, image, await loadRunStyle(run));
       await advance(run, ctx);
       console.log(summarise(run));
       return;

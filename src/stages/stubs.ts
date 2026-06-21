@@ -8,13 +8,6 @@
 import { resolve } from "node:path";
 import type { Stage } from "@/core/pipeline";
 
-export const image: Stage = async (run, ctx) => {
-  const path = resolve(ctx.settings.paths.runs, run.id, "image.placeholder.png");
-  await Bun.write(path, `stub base image for ${run.id}`);
-  run.artifacts.image = path;
-  run.cost.push({ stage: "image", provider: ctx.settings.providers.image, amountUsd: 0 });
-};
-
 export const animate: Stage = async (run, ctx) => {
   const path = resolve(ctx.settings.paths.renders, "raw", `${run.id}.placeholder.mp4`);
   await Bun.write(path, `stub raw clip for ${run.id}`);

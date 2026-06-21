@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { loadSettings, loadStyle, type Settings, type Style } from "@/core/config";
 import { advance, approve, reject } from "@/core/orchestrator";
 import type { PipelineContext } from "@/core/pipeline";
-import type { DirectorLLM } from "@/core/providers";
+import type { DirectorLLM, ImageProvider } from "@/core/providers";
 import { createRun, type Run, transition } from "@/core/run";
 import { RunStore } from "@/core/store";
 
@@ -35,6 +35,14 @@ const fakeDirector: DirectorLLM = {
   },
 };
 
+const fakeImage: ImageProvider = {
+  async generate(runId, runDir) {
+    const path = join(runDir, "image.placeholder.png");
+    await Bun.write(path, `stub base image for ${runId}`);
+    return { path, seed: 42, provider: "fake-image", costUsd: 0 };
+  },
+};
+
 describe("orchestrator", () => {
   let root: string;
   let settings: Settings;
@@ -55,7 +63,7 @@ describe("orchestrator", () => {
     };
     style = await loadStyle("./config", "cosmic-scifi");
     store = new RunStore(settings.paths.runs);
-    ctx = { settings, store, style, director: fakeDirector, log: () => {} };
+    ctx = { settings, store, style, director: fakeDirector, image: fakeImage, log: () => {} };
   });
 
   afterEach(async () => {
@@ -103,6 +111,7 @@ describe("orchestrator", () => {
       store: store2,
       style,
       director: fakeDirector,
+      image: fakeImage,
       log: () => {},
     };
     const resumed = await store2.load(run.id);
@@ -115,6 +124,13 @@ describe("orchestrator", () => {
   test("resume runs the stage a crashed run was on", async () => {
     // Persist a run mid-pipeline (status imaging), as if it crashed there.
     const run = createRun(settings, { orientation: "portrait", style: "cosmic-scifi" });
+    run.shotSpec = {
+      imagePrompt: "test",
+      motionPrompt: "test",
+      captionDraft: "test",
+      style: "none",
+      orientation: "portrait",
+    };
     transition(run, "gate_a", "stage");
     transition(run, "imaging", "operator");
     await store.save(run);

@@ -16,24 +16,10 @@ Rules:
 
 ## Now
 
-- Milestone: Slice 2 — Director stage: DONE + verified. Next: Slice 3 — Image
-  stage (`ImageProvider` interface + `ManualInbox` adapter + real image stage).
-- Last verified checkpoint: Slice 2. 4 gates green + 19 tests (3 are
-  recorded-fixture `MockLanguageModelV3` adapter tests; orchestrator drives the
-  pipeline through a fake `DirectorLLM`). Keyless CLI exercise: `cli new` reaches
-  the real AI SDK adapter and fails cleanly at the missing-key boundary (no
-  request sent); the run persists at `directing`, so it is resumable.
-- Next step (start here): add `ImageProvider` to `core/providers.ts` (`generate
-  (shotSpec) -> ImageArtifact {path, seed, provider, costUsd}`); implement a
-  `ManualInbox` image adapter (shows the operator the prompt + a run inbox dir,
-  watches for the dropped file, returns it) and a real `image` stage using
-  `ctx.image`; add `image` to `PipelineContext` + the resolver. Keep
-  animate/interpolate/caption/export stubbed. Verify: gates + a temp-dir test
-  that drops a file into the inbox and asserts the adapter returns it; CLI
-  `new`/`resume` still reach Gate A.5 with a real image artifact (manual route,
-  no spend).
-- Blockers: none. (External SSD recommended before real renders; not needed yet.)
-  A real director run needs `ANTHROPIC_API_KEY` in a gitignored `.env`.
+- Milestone: Slice 3 — Image stage: DONE + verified. Next: Slice 4 — Animate stage.
+- Last verified checkpoint: Slice 3. 4 gates green + 20 tests (including a file-drop test for `ManualInboxImageProvider`). The image stage awaits an operator drop, ingests the base image, and advances the run to Gate A.5.
+- Next step (start here): implement the `VideoProvider` interface (`animate(runId, runDir, spec, baseImagePath) -> VideoArtifact`) and the real `animate` stage. We need an adapter for the configured video provider (e.g. `ManualInbox` for video). Add `video` to `PipelineContext` and the resolver. Verify: gates + tests.
+- Blockers: none.
 
 ## Decisions
 
@@ -53,6 +39,7 @@ Rules:
 
 - 2026-06-20: slice 1 (skeleton) done + verified — config/run/store/orchestrator/CLI, stubbed stages, 16 tests, real new→ready run across processes.
 - 2026-06-20: slice 2 (director) done + verified — `DirectorLLM` + Claude adapter (AI SDK), real `direct` stage, stage registry, injected context; 19 tests incl. 3 mock-model fixtures; keyless CLI reaches adapter, run persists at `directing`.
+- 2026-06-21: slice 3 (image) done + verified — `ImageProvider` interface + `ManualInbox` adapter + real `image` stage; 20 tests; CLI correctly uses the manual inbox and advances to gate_a5.
 
 ## Archive
 

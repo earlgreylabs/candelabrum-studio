@@ -40,3 +40,14 @@ export interface DirectorLLM {
   finalise(concept: Concept, orientation: Orientation, style?: Style): Promise<ShotSpec>;
   caption(shotSpec: ShotSpec, platform: Platform): Promise<string>;
 }
+
+export interface ImageArtifact {
+  path: string;
+  seed: number | undefined;
+  provider: string;
+  costUsd: number;
+}
+
+export interface ImageProvider {
+  generate(runId: string, runDir: string, spec: ShotSpec): Promise<ImageArtifact>;
+}
