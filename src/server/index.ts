@@ -3,7 +3,7 @@ import { serveStatic } from "hono/bun";
 import { streamSSE } from "hono/streaming";
 import { loadSettings, loadStyle, type Settings, type Style } from "@/core/config";
 import { RunStore } from "@/core/store";
-import { approve, reject as rejectRun } from "@/core/orchestrator";
+import { approve, reject as rejectRun, revise as reviseRun, regenerate as regenerateRun } from "@/core/orchestrator";
 import type { PipelineContext } from "@/core/pipeline";
 import type { Run } from "@/core/run";
 import { resolveDirector } from "@/providers/director";
@@ -103,6 +103,49 @@ app.post("/api/runs/:id/reject", async (c) => {
     return c.json({ run: updated });
   } catch (err) {
     console.error(`Failed to reject run ${id}:`, err);
+    return c.json({ error: err instanceof Error ? err.message : String(err) }, 400);
+  }
+});
+
+// POST /api/runs/:id/revise
+app.post("/api/runs/:id/revise", async (c) => {
+  const settings = await loadSettings(configDir);
+  const store = new RunStore(settings.paths.runs);
+  const id = c.req.param("id");
+  try {
+    const run = await store.load(id);
+    const ctx = await buildContext(settings, store, run);
+    
+    let instruction = "";
+    if (c.req.header("content-type")?.includes("application/json")) {
+      const body = await c.req.json();
+      instruction = body.instruction;
+    }
+    if (!instruction) {
+      return c.json({ error: "instruction is required for revise" }, 400);
+    }
+
+    const updated = await reviseRun(run, ctx, instruction);
+    return c.json({ run: updated });
+  } catch (err) {
+    console.error(`Failed to revise run ${id}:`, err);
+    return c.json({ error: err instanceof Error ? err.message : String(err) }, 400);
+  }
+});
+
+// POST /api/runs/:id/regenerate
+app.post("/api/runs/:id/regenerate", async (c) => {
+  const settings = await loadSettings(configDir);
+  const store = new RunStore(settings.paths.runs);
+  const id = c.req.param("id");
+  try {
+    const run = await store.load(id);
+    const ctx = await buildContext(settings, store, run);
+
+    const updated = await regenerateRun(run, ctx);
+    return c.json({ run: updated });
+  } catch (err) {
+    console.error(`Failed to regenerate run ${id}:`, err);
     return c.json({ error: err instanceof Error ? err.message : String(err) }, 400);
   }
 });

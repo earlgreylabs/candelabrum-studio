@@ -18,6 +18,6 @@ export const direct: Stage = async (run, ctx) => {
   if (!chosen) {
     throw new Error("director proposed no concepts");
   }
-  run.shotSpec = await ctx.director.finalise(chosen, run.profile.orientation, ctx.style);
+  run.concept = chosen;
   run.cost.push({ stage: "direct", provider: ctx.settings.providers.director, amountUsd: 0 });
 };

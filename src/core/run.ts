@@ -58,6 +58,13 @@ export function isTerminal(status: RunStatus): boolean {
 
 export const runStatusSchema = z.enum(RUN_STATUSES);
 
+export const conceptSchema = z.object({
+  title: z.string(),
+  summary: z.string(),
+  subject: z.string(),
+});
+export type Concept = z.infer<typeof conceptSchema>;
+
 export const shotSpecSchema = z.object({
   imagePrompt: z.string(),
   motionPrompt: z.string(),
@@ -95,6 +102,7 @@ export const runSchema = z.object({
   style: z.string().optional(),
   lore: z.string().optional(),
   status: runStatusSchema,
+  concept: conceptSchema.optional(),
   shotSpec: shotSpecSchema.optional(),
   profile: outputProfileSchema,
   artifacts: runArtifactsSchema,

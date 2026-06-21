@@ -9,15 +9,8 @@
 
 import type { Style } from "@/core/config";
 import type { Orientation } from "@/core/constants";
-import type { ShotSpec } from "@/core/run";
+import type { Concept, ShotSpec } from "@/core/run";
 
-/** A creative idea before it is finalised into a concrete shot spec. */
-export interface Concept {
-  title: string;
-  summary: string;
-  /** The focal subject the image and motion prompts are built around. */
-  subject: string;
-}
 
 export type Platform = "tiktok" | "instagram";
 

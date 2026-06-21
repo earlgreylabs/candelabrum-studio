@@ -9,8 +9,9 @@ export function RunDetail() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [actionLoading, setActionLoading] = useState<boolean>(false);
+  const [reviseInstruction, setReviseInstruction] = useState("");
 
-  useEffect(() => {
+  const fetchRun = () => {
     fetch(`/api/runs/${id}`)
       .then((res) => {
         if (!res.ok) throw new Error("Run not found");
@@ -24,6 +25,10 @@ export function RunDetail() {
         setError(err.message);
         setLoading(false);
       });
+  };
+
+  useEffect(() => {
+    fetchRun();
   }, [id]);
 
   const handleAction = async (action: "advance" | "reject") => {
@@ -35,7 +40,44 @@ export function RunDetail() {
         const data = await res.json();
         throw new Error(data.error || "Action failed");
       }
-      // Re-fetch or just go back to list
+      navigate("/");
+    } catch (err) {
+      alert(err instanceof Error ? err.message : String(err));
+      setActionLoading(false);
+    }
+  };
+
+  const handleRevise = async () => {
+    if (!run || !reviseInstruction) return;
+    setActionLoading(true);
+    try {
+      const res = await fetch(`/api/runs/${run.id}/revise`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ instruction: reviseInstruction }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Revise failed");
+      }
+      setReviseInstruction("");
+      fetchRun(); // Re-fetch to show new concept
+    } catch (err) {
+      alert(err instanceof Error ? err.message : String(err));
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleRegenerate = async () => {
+    if (!run) return;
+    setActionLoading(true);
+    try {
+      const res = await fetch(`/api/runs/${run.id}/regenerate`, { method: "POST" });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Regenerate failed");
+      }
       navigate("/");
     } catch (err) {
       alert(err instanceof Error ? err.message : String(err));
@@ -72,6 +114,27 @@ export function RunDetail() {
 
       <main className="flex-1 grid gap-8 md:grid-cols-[2fr_1fr]">
         <div className="space-y-8">
+          {/* Concept Display (Gate A) */}
+          {run.concept && (
+            <div className="rounded-lg border border-border bg-surface p-6 space-y-4">
+              <h3 className="text-lg font-medium text-accent border-b border-border pb-2">
+                Concept Draft
+              </h3>
+              <div>
+                <h4 className="text-sm text-secondary mb-1">Title</h4>
+                <p className="text-lg font-medium">{run.concept.title}</p>
+              </div>
+              <div>
+                <h4 className="text-sm text-secondary mb-1">Summary</h4>
+                <p className="text-sm">{run.concept.summary}</p>
+              </div>
+              <div>
+                <h4 className="text-sm text-secondary mb-1">Subject</h4>
+                <p className="text-sm">{run.concept.subject}</p>
+              </div>
+            </div>
+          )}
+
           {/* Artifacts Display */}
           {run.artifacts.masterClip ? (
             <div className="rounded-lg border border-border bg-surface overflow-hidden">
@@ -100,11 +163,11 @@ export function RunDetail() {
                 className={`rounded border border-border ${run.profile.orientation === "portrait" ? "max-h-[70vh] object-contain" : "w-full object-contain"}`}
               />
             </div>
-          ) : (
+          ) : !run.concept ? (
             <div className="rounded-lg border border-border bg-surface p-12 text-center text-secondary flex items-center justify-center h-64">
               No visual artifacts yet.
             </div>
-          )}
+          ) : null}
 
           {/* Details */}
           {run.shotSpec && (
@@ -148,6 +211,38 @@ export function RunDetail() {
                 >
                   Reject
                 </button>
+
+                {run.status === "gate_a" && (
+                  <div className="pt-4 mt-4 border-t border-border">
+                    <label className="block text-sm text-secondary mb-2">Revise Concept</label>
+                    <textarea
+                      className="w-full bg-background border border-border rounded p-2 text-sm focus:border-accent outline-none transition-colors mb-2"
+                      rows={3}
+                      placeholder="e.g. Make it more cyberpunk..."
+                      value={reviseInstruction}
+                      onChange={(e) => setReviseInstruction(e.target.value)}
+                    />
+                    <button
+                      onClick={handleRevise}
+                      disabled={actionLoading || !reviseInstruction.trim()}
+                      className="w-full rounded bg-surfaceRaised text-primary border border-border py-2 font-semibold hover:bg-surface transition-colors disabled:opacity-50"
+                    >
+                      Revise
+                    </button>
+                  </div>
+                )}
+
+                {(run.status === "gate_a5" || run.status === "gate_b") && (
+                  <div className="pt-4 mt-4 border-t border-border">
+                    <button
+                      onClick={handleRegenerate}
+                      disabled={actionLoading}
+                      className="w-full rounded bg-surfaceRaised text-primary border border-border py-2 font-semibold hover:bg-surface transition-colors disabled:opacity-50"
+                    >
+                      Regenerate {run.status === "gate_a5" ? "Image" : "Video"}
+                    </button>
+                  </div>
+                )}
               </div>
             ) : (
               <p className="text-sm text-secondary">

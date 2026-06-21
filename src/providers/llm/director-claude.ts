@@ -9,8 +9,8 @@ import { generateObject, type LanguageModel } from "ai";
 import { z } from "zod";
 import type { Style } from "@/core/config";
 import type { Orientation } from "@/core/constants";
-import type { Concept, DirectorLLM, Platform, ProposeConceptsInput } from "@/core/providers";
-import { type ShotSpec, shotSpecSchema } from "@/core/run";
+import type { DirectorLLM, Platform, ProposeConceptsInput } from "@/core/providers";
+import { type Concept, conceptSchema, type ShotSpec, shotSpecSchema } from "@/core/run";
 
 const DIRECTOR_SYSTEM =
   "You are the creative director of a digital-art studio that produces short, " +
@@ -18,11 +18,6 @@ const DIRECTOR_SYSTEM =
   "and write precise generation prompts. Favour forward camera travel and stable, " +
   "non-warping structure. Keep every concept different from the recent history.";
 
-const conceptSchema = z.object({
-  title: z.string(),
-  summary: z.string(),
-  subject: z.string(),
-});
 
 function styleBrief(style?: Style): string {
   if (!style) {
@@ -41,6 +36,7 @@ export function createClaudeDirector(model: LanguageModel): DirectorLLM {
     }: ProposeConceptsInput): Promise<Concept[]> {
       const { object } = await generateObject({
         model,
+        allowSystemInMessages: true,
         schema: z.object({ concepts: z.array(conceptSchema) }),
         messages: [
           {
@@ -69,6 +65,7 @@ export function createClaudeDirector(model: LanguageModel): DirectorLLM {
     async revise(concept: Concept, instruction: string): Promise<Concept> {
       const { object } = await generateObject({
         model,
+        allowSystemInMessages: true,
         schema: conceptSchema,
         messages: [
           {
@@ -90,6 +87,7 @@ export function createClaudeDirector(model: LanguageModel): DirectorLLM {
     async finalise(concept: Concept, orientation: Orientation, style?: Style): Promise<ShotSpec> {
       const { object } = await generateObject({
         model,
+        allowSystemInMessages: true,
         schema: z.object({
           imagePrompt: z.string(),
           motionPrompt: z.string(),
@@ -126,6 +124,7 @@ export function createClaudeDirector(model: LanguageModel): DirectorLLM {
     async caption(shotSpec: ShotSpec, platform: Platform): Promise<string> {
       const { object } = await generateObject({
         model,
+        allowSystemInMessages: true,
         schema: z.object({ caption: z.string() }),
         messages: [
           {

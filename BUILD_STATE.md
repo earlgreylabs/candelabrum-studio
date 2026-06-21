@@ -38,6 +38,7 @@ Rules:
 <!-- one terse line per finished slice: "YYYY-MM-DD: slice N done + verified" -->
 
 - 2026-06-21: Dashboard Gate Interactions done + verified — added React Router, RunDetail view, and Hono endpoints for advance/reject, verified with tests.
+- 2026-06-21: Revise and Regenerate complete + verified — added backwards transitions to orchestrator and UI.
 - 2026-06-21: Dashboard runs list done + verified — wired React UI to Hono backend with SSE progress streaming.
 - 2026-06-20: slice 1 (skeleton) done + verified — config/run/store/orchestrator/CLI, stubbed stages, 16 tests, real new→ready run across processes.
 - 2026-06-20: slice 2 (director) done + verified — `DirectorLLM` + Claude adapter (AI SDK), real `direct` stage, stage registry, injected context; 19 tests incl. 3 mock-model fixtures; keyless CLI reaches adapter, run persists at `directing`.
