@@ -26,6 +26,7 @@ export function RunList({ runs, status }: RunListProps) {
         <div className="mb-6 flex items-center justify-between">
           <h2 className="text-xl font-semibold">Active Runs</h2>
           <button
+            type="button"
             onClick={async (e) => {
               const btn = e.currentTarget;
               btn.disabled = true;

@@ -12,7 +12,8 @@ describe("run model", () => {
 
   test("status topology runs linearly to ready", () => {
     expect(NEXT_STATUS.directing).toBe("gate_a");
-    expect(NEXT_STATUS.gate_a5).toBe("animating");
+    expect(NEXT_STATUS.gate_a5).toBe("upscaling");
+    expect(NEXT_STATUS.upscaling).toBe("animating");
     expect(NEXT_STATUS.exporting).toBe("ready");
     expect(NEXT_STATUS.ready).toBeNull();
   });

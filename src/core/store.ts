@@ -5,7 +5,7 @@
  */
 
 import { existsSync } from "node:fs";
-import { readdir } from "node:fs/promises";
+import { mkdir, readdir, rename, rm } from "node:fs/promises";
 import { resolve } from "node:path";
 import { type Run, runSchema } from "@/core/run";
 
@@ -21,8 +21,17 @@ export class RunStore {
   }
 
   async save(run: Run): Promise<void> {
-    // Bun.write creates parent directories as needed.
-    await Bun.write(this.metaPath(run.id), JSON.stringify(run, null, 2));
+    const dir = this.dir(run.id);
+    const destination = this.metaPath(run.id);
+    const temporary = resolve(dir, `metadata.${crypto.randomUUID()}.tmp`);
+    await mkdir(dir, { recursive: true });
+
+    try {
+      await Bun.write(temporary, JSON.stringify(run, null, 2));
+      await rename(temporary, destination);
+    } finally {
+      await rm(temporary, { force: true });
+    }
   }
 
   async exists(id: string): Promise<boolean> {

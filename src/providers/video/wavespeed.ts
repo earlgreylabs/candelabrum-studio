@@ -1,18 +1,39 @@
 import { mkdir } from "node:fs/promises";
 import { resolve } from "node:path";
 import { Client } from "wavespeed";
-import type { VideoArtifact, VideoProvider } from "@/core/providers";
+import { z } from "zod";
+import type { PayloadObserver, VideoArtifact, VideoProvider } from "@/core/providers";
 import type { ShotSpec } from "@/core/run";
 
 const ESTIMATED_COST_USD = 0.5; // Kling I2V cost estimate
+const DEFAULT_BASE_URL = "https://api.wavespeed.ai";
+
+const submitResultSchema = z.object({
+  code: z.number(),
+  data: z.object({ id: z.string().min(1) }),
+});
+
+const pollResultSchema = z.object({
+  data: z.object({
+    status: z.string(),
+    outputs: z.union([z.string(), z.array(z.string())]).optional(),
+    error: z.string().optional(),
+  }),
+});
+
+function firstOutput(outputs: string | string[] | undefined): string | undefined {
+  return Array.isArray(outputs) ? outputs[0] : outputs;
+}
 
 export class WaveSpeedVideoProvider implements VideoProvider {
-  private client: Client;
-  private model: string;
+  private readonly client: Client;
 
-  constructor(apiKey: string, modelId: string = "kwaivgi/kling-v1.6-i2v-standard") {
+  constructor(
+    private readonly apiKey: string,
+    private readonly model = "kwaivgi/kling-v1.6-i2v-standard",
+    private readonly baseUrl = DEFAULT_BASE_URL,
+  ) {
     this.client = new Client(apiKey);
-    this.model = modelId;
   }
 
   async animate(
@@ -20,16 +41,14 @@ export class WaveSpeedVideoProvider implements VideoProvider {
     renderDir: string,
     spec: ShotSpec,
     baseImagePath: string,
-    onPayload?: (payload: any) => void,
+    onPayload?: PayloadObserver,
     existingJobId?: string,
     onJobId?: (jobId: string) => Promise<void>,
   ): Promise<VideoArtifact> {
     await mkdir(renderDir, { recursive: true });
 
     let operationId = existingJobId;
-    let payload: any = undefined;
-    const apiKey = (this.client as any).apiKey;
-    const baseUrl = (this.client as any).baseUrl || "https://api.wavespeed.ai";
+    let payload: unknown;
 
     if (!operationId) {
       console.log(`[wavespeed video] Uploading base image from ${baseImagePath}...`);
@@ -46,11 +65,11 @@ export class WaveSpeedVideoProvider implements VideoProvider {
       };
       onPayload?.(payload);
 
-      const submitRes = await fetch(`${baseUrl}/api/v3/${this.model}`, {
+      const submitRes = await fetch(`${this.baseUrl}/api/v3/${this.model}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${apiKey}`,
+          Authorization: `Bearer ${this.apiKey}`,
         },
         body: JSON.stringify(payload),
       });
@@ -59,13 +78,13 @@ export class WaveSpeedVideoProvider implements VideoProvider {
         throw new Error(`WaveSpeed submit failed: ${await submitRes.text()}`);
       }
 
-      const submitData = (await submitRes.json()) as any;
-      if (submitData.code !== 0 || !submitData.data?.id) {
-        throw new Error(`WaveSpeed submit failed: ${JSON.stringify(submitData)}`);
+      const submitData = submitResultSchema.safeParse(await submitRes.json());
+      if (!submitData.success || submitData.data.code !== 0) {
+        throw new Error(`WaveSpeed submit returned an invalid response: ${submitData.error}`);
       }
 
-      operationId = submitData.data.id;
-      if (onJobId && operationId) {
+      operationId = submitData.data.data.id;
+      if (onJobId) {
         await onJobId(operationId);
       }
     } else {
@@ -82,21 +101,26 @@ export class WaveSpeedVideoProvider implements VideoProvider {
     let videoUrl = "";
     for (let attempt = 0; attempt < 120; attempt++) {
       await Bun.sleep(5000);
-      const pollRes = await fetch(`${baseUrl}/api/v3/predictions/${operationId}/result`, {
-        headers: { Authorization: `Bearer ${apiKey}` },
+      const pollRes = await fetch(`${this.baseUrl}/api/v3/predictions/${operationId}/result`, {
+        headers: { Authorization: `Bearer ${this.apiKey}` },
       });
       if (!pollRes.ok) {
         throw new Error(`WaveSpeed poll failed: ${await pollRes.text()}`);
       }
 
-      const pollData = (await pollRes.json()) as any;
-      const data = pollData.data || {};
+      const pollData = pollResultSchema.safeParse(await pollRes.json());
+      if (!pollData.success) {
+        throw new Error(`WaveSpeed poll returned an invalid response: ${pollData.error}`);
+      }
+      const { data } = pollData.data;
 
       if (data.status === "completed") {
-        videoUrl = data.outputs?.[0] || data.outputs;
+        videoUrl = firstOutput(data.outputs) ?? "";
         console.log(`[wavespeed video] generation complete for run ${runId}`);
         break;
-      } else if (data.status === "failed") {
+      }
+
+      if (data.status === "failed") {
         throw new Error(`WaveSpeed generation failed: ${data.error || "Unknown error"}`);
       }
 

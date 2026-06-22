@@ -83,6 +83,8 @@ const runArtifactsSchema = z.object({
   rawClip: z.string().optional(),
   masterClip: z.string().optional(),
   masterProxyClip: z.string().optional(),
+  masterMode: z.enum(["interpolated", "pass-through"]).optional(),
+  masterNote: z.string().optional(),
   providerJobId: z.string().optional(),
   exportPackage: z.string().optional(),
   exportVideo: z.string().optional(),
@@ -110,8 +112,17 @@ const costEntrySchema = z.object({
   // runs created before model tracking still load.
   model: z.string().optional(),
   amountUsd: z.number(),
-  payload: z.any().optional(),
+  payload: z.unknown().optional(),
 });
+
+const runFailureSchema = z.object({
+  at: z.string(),
+  status: runStatusSchema,
+  message: z.string(),
+  attempt: z.number().int().positive(),
+  retryable: z.boolean(),
+});
+export type RunFailure = z.infer<typeof runFailureSchema>;
 
 export const runSchema = z.object({
   id: z.string(),
@@ -125,6 +136,7 @@ export const runSchema = z.object({
   events: z.array(runEventSchema),
   cost: z.array(costEntrySchema),
   overrides: overridesSchema.optional(),
+  lastError: runFailureSchema.optional(),
   createdAt: z.string(),
 });
 export type Run = z.infer<typeof runSchema>;
@@ -162,4 +174,33 @@ export function createRun(settings: Settings, opts: CreateRunOptions): Run {
 export function transition(run: Run, to: RunStatus, type: string, note?: string): void {
   run.events.push({ at: new Date().toISOString(), type, from: run.status, to, note });
   run.status = to;
+}
+
+/** Persist why a run paused without moving it away from its resumable stage. */
+export function recordRunFailure(run: Run, error: unknown, retryable = true): RunFailure {
+  const message = error instanceof Error ? error.message : String(error);
+  const previousAttempts = run.lastError?.status === run.status ? run.lastError.attempt : 0;
+  const failure: RunFailure = {
+    at: new Date().toISOString(),
+    status: run.status,
+    message,
+    attempt: previousAttempts + 1,
+    retryable,
+  };
+
+  run.lastError = failure;
+  run.events.push({
+    at: failure.at,
+    type: "stage_error",
+    from: run.status,
+    to: run.status,
+    note: message,
+  });
+
+  return failure;
+}
+
+/** Clear an earlier failure after its stage completes successfully. */
+export function clearRunFailure(run: Run): void {
+  run.lastError = undefined;
 }

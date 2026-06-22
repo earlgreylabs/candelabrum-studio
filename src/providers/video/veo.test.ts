@@ -86,7 +86,7 @@ describe("VeoVideoProvider", () => {
   test("resumes existing job id without submitting again", async () => {
     let predictCalls = 0;
 
-    const fakeFetch = (async (input: string | URL | Request, init?: RequestInit) => {
+    const fakeFetch = (async (input: string | URL | Request, _init?: RequestInit) => {
       const url = input.toString();
       if (url.endsWith(":predictLongRunning")) {
         predictCalls += 1;
@@ -130,6 +130,54 @@ describe("VeoVideoProvider", () => {
 
       expect(predictCalls).toBe(0); // Should skip submission
       expect(artifact.path).toBe(resolve(renderDir, "test-run.mp4"));
+    } finally {
+      await rm(renderDir, { recursive: true, force: true });
+    }
+  });
+
+  test("retries a transient poll failure for an existing job", async () => {
+    let polls = 0;
+    const fakeFetch = (async (input: string | URL | Request) => {
+      const url = input.toString();
+      if (!url.includes("operations/existing-op")) {
+        throw new Error(`unexpected fetch to ${url}`);
+      }
+      polls += 1;
+      if (polls === 1) {
+        return new Response("temporary outage", { status: 503 });
+      }
+      return new Response(
+        JSON.stringify({
+          done: true,
+          response: {
+            generateVideoResponse: {
+              generatedSamples: [
+                { video: { bytesBase64Encoded: Buffer.from(MP4_BYTES).toString("base64") } },
+              ],
+            },
+          },
+        }),
+        { status: 200 },
+      );
+    }) as typeof fetch;
+    const renderDir = await mkdtemp(resolve(tmpdir(), "veo-"));
+    const baseImagePath = resolve(renderDir, "image.base.jpg");
+    await writeFile(baseImagePath, new Uint8Array([0xff, 0xd8, 0xff]));
+
+    try {
+      const provider = new VeoVideoProvider("veo-test", "fake-key", {
+        fetch: fakeFetch,
+        pollMs: 0,
+      });
+      await provider.animate(
+        "test-run",
+        renderDir,
+        SPEC,
+        baseImagePath,
+        undefined,
+        "operations/existing-op",
+      );
+      expect(polls).toBe(2);
     } finally {
       await rm(renderDir, { recursive: true, force: true });
     }

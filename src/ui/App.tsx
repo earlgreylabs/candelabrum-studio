@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import type { Run } from "@/core/run";
+import { RunCompare } from "./RunCompare";
 import { RunDetail } from "./RunDetail";
 import { RunList } from "./RunList";
-import { RunCompare } from "./RunCompare";
 
 export function App() {
   const [runs, setRuns] = useState<Run[]>([]);

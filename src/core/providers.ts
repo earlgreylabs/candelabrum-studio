@@ -2,9 +2,8 @@
  * Adapter interfaces. Each stage depends on an interface here, never a vendor;
  * swapping a provider (or substituting a `ManualInbox`) is config, not code.
  *
- * Only `DirectorLLM` is realised so far (Slice 2). `ImageProvider`,
- * `VideoProvider`, and `Exporter` land with their stages, behind the same
- * pattern (see docs/concept/02-architecture.md).
+ * Payloads are deliberately `unknown`: providers may expose useful diagnostic
+ * data, but callers must narrow it before reading vendor-specific fields.
  */
 
 import type { Style } from "@/core/config";
@@ -12,6 +11,8 @@ import type { Orientation } from "@/core/constants";
 import type { Concept, Run, ShotSpec } from "@/core/run";
 
 export type Platform = "tiktok" | "instagram";
+export type ProviderPayload = unknown;
+export type PayloadObserver = (payload: ProviderPayload) => void;
 
 export interface ProposeConceptsInput {
   count: number;
@@ -29,26 +30,15 @@ export interface ProposeConceptsInput {
 export interface DirectorLLM {
   /** The model id driving the director's LLM steps, for cost tracking. */
   readonly modelId: string;
-  proposeConcepts(
-    input: ProposeConceptsInput,
-    onPayload?: (payload: any) => void,
-  ): Promise<Concept[]>;
-  revise(
-    concept: Concept,
-    instruction: string,
-    onPayload?: (payload: any) => void,
-  ): Promise<Concept>;
+  proposeConcepts(input: ProposeConceptsInput, onPayload?: PayloadObserver): Promise<Concept[]>;
+  revise(concept: Concept, instruction: string, onPayload?: PayloadObserver): Promise<Concept>;
   finalise(
     concept: Concept,
     orientation: Orientation,
     style?: Style,
-    onPayload?: (payload: any) => void,
+    onPayload?: PayloadObserver,
   ): Promise<ShotSpec>;
-  caption(
-    shotSpec: ShotSpec,
-    platform: Platform,
-    onPayload?: (payload: any) => void,
-  ): Promise<string>;
+  caption(shotSpec: ShotSpec, platform: Platform, onPayload?: PayloadObserver): Promise<string>;
 }
 
 export interface ImageArtifact {
@@ -57,7 +47,7 @@ export interface ImageArtifact {
   provider: string;
   model: string;
   costUsd: number;
-  payload?: any;
+  payload?: ProviderPayload;
 }
 
 export interface ImageProvider {
@@ -69,7 +59,7 @@ export interface VideoArtifact {
   provider: string;
   model: string;
   costUsd: number;
-  payload?: any;
+  payload?: ProviderPayload;
 }
 
 export interface VideoProvider {
@@ -78,7 +68,7 @@ export interface VideoProvider {
     renderDir: string,
     spec: ShotSpec,
     baseImagePath: string,
-    onPayload?: (payload: any) => void,
+    onPayload?: PayloadObserver,
     existingJobId?: string,
     onJobId?: (jobId: string) => Promise<void>,
   ): Promise<VideoArtifact>;
@@ -91,4 +81,6 @@ export interface ExportPackage {
 
 export interface Exporter {
   package(run: Run, readyDir: string): Promise<ExportPackage>;
+  /** Write metadata only after the orchestrator has transitioned the run to ready. */
+  finalize(run: Run, packageDir: string): Promise<void>;
 }

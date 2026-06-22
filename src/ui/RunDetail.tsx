@@ -57,7 +57,9 @@ export function RunDetail() {
   useEffect(() => {
     if (!run) return;
     const processing =
-      !GATE_STATUSES.includes(run.status) && !TERMINAL_STATUSES.includes(run.status);
+      !run.lastError &&
+      !GATE_STATUSES.includes(run.status) &&
+      !TERMINAL_STATUSES.includes(run.status);
     if (!processing) return;
     const interval = setInterval(fetchRun, 2500);
     return () => clearInterval(interval);
@@ -175,11 +177,13 @@ export function RunDetail() {
         </div>
         <div
           className={`rounded bg-surfaceRaised px-3 py-1 text-sm font-semibold capitalize border border-border ${
-            isGate
-              ? "text-status-warning"
-              : ["ready"].includes(run.status)
-                ? "text-status-ready"
-                : "text-status-rendering"
+            run.lastError
+              ? "text-status-danger"
+              : isGate
+                ? "text-status-warning"
+                : ["ready"].includes(run.status)
+                  ? "text-status-ready"
+                  : "text-status-rendering"
           }`}
         >
           {run.status.replace("_", " ")}
@@ -228,6 +232,15 @@ export function RunDetail() {
           )}
 
           {/* Artifacts Display */}
+          {run.artifacts.masterMode === "pass-through" && (
+            <div className="rounded-lg border border-status-warning/50 bg-status-warning/10 p-4">
+              <h3 className="font-medium text-status-warning">Enhancement bypassed</h3>
+              <p className="mt-1 text-sm text-secondary">
+                {run.artifacts.masterNote ?? "The raw clip is being used as the master."}
+              </p>
+            </div>
+          )}
+
           {run.artifacts.masterProxyClip || run.artifacts.masterClip ? (
             <div className="rounded-lg border border-border bg-surface overflow-hidden">
               <video
@@ -368,6 +381,25 @@ export function RunDetail() {
               </div>
             ) : (
               <div className="space-y-4">
+                {run.lastError && (
+                  <div className="rounded border border-status-danger/50 bg-status-danger/10 p-3">
+                    <p className="text-sm font-medium text-status-danger">
+                      Paused at {run.lastError.status.replace("_", " ")}
+                    </p>
+                    <p className="mt-1 text-xs text-secondary">{run.lastError.message}</p>
+                    <p className="mt-1 text-xs text-faint">Attempt {run.lastError.attempt}</p>
+                    {run.lastError.retryable && (
+                      <button
+                        type="button"
+                        onClick={handleResume}
+                        disabled={actionLoading}
+                        className="mt-3 w-full rounded border border-status-warning/50 bg-status-warning/20 py-2 font-semibold text-status-warning hover:bg-status-warning/30 disabled:opacity-50"
+                      >
+                        Retry Current Stage
+                      </button>
+                    )}
+                  </div>
+                )}
                 <p className="text-sm text-secondary">
                   {run.status === "ready" || run.status === "rejected" || run.status === "failed"
                     ? "Run has completed."
@@ -376,7 +408,9 @@ export function RunDetail() {
                 {run.status === "failed" && (
                   <div className="pt-4 border-t border-border">
                     <p className="text-xs text-status-danger mb-3">
-                      This run failed due to an error. If you have resolved the underlying issue (e.g., added credits or fixed a network issue), you can attempt to recover the run.
+                      This run failed due to an error. If you have resolved the underlying issue
+                      (e.g., added credits or fixed a network issue), you can attempt to recover the
+                      run.
                     </p>
                     <button
                       type="button"

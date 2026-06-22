@@ -7,6 +7,12 @@ import type { Run } from "@/core/run";
 // ffmpeg `prores_ks -profile:v 3` = ProRes 422 HQ (the flat archival master).
 const PRORES_422_HQ = "3";
 
+interface InterpolationRuntime {
+  which(binary: string): string | null;
+  run(cmd: string[]): Promise<void>;
+  probeFps(ffprobe: string, clip: string): Promise<number>;
+}
+
 async function runCmd(cmd: string[]): Promise<void> {
   const proc = Bun.spawn(cmd, { stdout: "ignore", stderr: "pipe" });
   await proc.exited;
@@ -45,17 +51,29 @@ async function probeFps(ffprobe: string, clip: string): Promise<number> {
   return fps;
 }
 
+const defaultRuntime: InterpolationRuntime = {
+  which: (binary) => Bun.which(binary),
+  run: runCmd,
+  probeFps,
+};
+
 /** Degrade gracefully: the source clip becomes the master, ungraded. */
-async function passThrough(run: Run, rawClip: string, masterDir: string): Promise<void> {
+async function passThrough(
+  run: Run,
+  rawClip: string,
+  masterDir: string,
+  runtime: InterpolationRuntime,
+  note: string,
+): Promise<void> {
   const masterClipPath = resolve(masterDir, `${run.id}${extname(rawClip)}`);
   await copyFile(rawClip, masterClipPath);
   run.artifacts.masterClip = masterClipPath;
 
   // Create an MP4 proxy for the UI if it's a MOV file to prevent MIME errors
-  const ffmpeg = Bun.which("ffmpeg");
+  const ffmpeg = runtime.which("ffmpeg");
   if (ffmpeg && extname(masterClipPath).toLowerCase() === ".mov") {
     const masterProxyClipPath = resolve(masterDir, `${run.id}-proxy.mp4`);
-    await runCmd([
+    await runtime.run([
       ffmpeg,
       "-y",
       "-i",
@@ -75,6 +93,9 @@ async function passThrough(run: Run, rawClip: string, masterDir: string): Promis
     run.artifacts.masterProxyClip = masterClipPath; // mp4 is already playable
   }
 
+  run.artifacts.masterMode = "pass-through";
+  run.artifacts.masterNote = note;
+
   run.cost.push({
     stage: "interpolate",
     provider: "pass-through",
@@ -86,52 +107,73 @@ async function passThrough(run: Run, rawClip: string, masterDir: string): Promis
 /**
  * Frame-interpolate the raw clip up to `masterFps` with rife-ncnn-vulkan (local,
  * Apple GPU via MoltenVK), wrapping the result into a flat ProRes 422 HQ master:
- * ffmpeg extracts frames -> rife inserts in-between frames -> ffmpeg encodes. If
- * the local tools are missing or the run fails, the raw clip passes through as the
- * master (the documented "no GPU -> no interpolation" degrade), so the pipeline
- * never stalls here.
+ * ffmpeg extracts frames -> rife inserts in-between frames -> ffmpeg encodes.
+ * Missing tools degrade explicitly to pass-through. Installed tools that fail are
+ * actionable failures and leave the run resumable at `interpolating`.
  */
-export const interpolate: Stage = async (run, ctx) => {
-  if (!run.artifacts.rawClip) {
-    throw new Error(`run ${run.id} has no raw clip`);
-  }
-  const rawClip = run.artifacts.rawClip;
-  const masterDir = resolve(ctx.settings.paths.renders, "master");
-  await mkdir(masterDir, { recursive: true });
+export function createInterpolate(runtime: InterpolationRuntime = defaultRuntime): Stage {
+  return async (run, ctx) => {
+    if (!run.artifacts.rawClip) {
+      throw new Error(`run ${run.id} has no raw clip`);
+    }
+    if (run.artifacts.masterClip && (await Bun.file(run.artifacts.masterClip).exists())) {
+      ctx.log(`[Interpolate] Reusing persisted master for run ${run.id}.`);
+      return;
+    }
 
-  const rife = Bun.which("rife-ncnn-vulkan");
-  const ffmpeg = Bun.which("ffmpeg");
-  const ffprobe = Bun.which("ffprobe");
+    const rawClip = run.artifacts.rawClip;
+    const masterDir = resolve(ctx.settings.paths.renders, "master");
+    await mkdir(masterDir, { recursive: true });
 
-  if (rife && ffmpeg && ffprobe) {
+    const rife = runtime.which("rife-ncnn-vulkan");
+    const ffmpeg = runtime.which("ffmpeg");
+    const ffprobe = runtime.which("ffprobe");
+    const missing = [
+      !rife && "rife-ncnn-vulkan",
+      !ffmpeg && "ffmpeg",
+      !ffprobe && "ffprobe",
+    ].filter((binary): binary is string => Boolean(binary));
+
+    if (missing.length > 0 || !rife || !ffmpeg || !ffprobe) {
+      const note = `missing local tools: ${missing.join(", ")}`;
+      ctx.log(`[Interpolate] ${note}; passing raw clip through.`);
+      await passThrough(run, rawClip, masterDir, runtime, note);
+      return;
+    }
+
     const work = await mkdtemp(resolve(tmpdir(), `interp-${run.id}-`));
     const srcFrames = resolve(work, "src");
     const outFrames = resolve(work, "out");
+
     try {
       await mkdir(srcFrames, { recursive: true });
       await mkdir(outFrames, { recursive: true });
 
-      const sourceFps = await probeFps(ffprobe, rawClip);
+      const sourceFps = await runtime.probeFps(ffprobe, rawClip);
       const masterFps = ctx.settings.targets.masterFps;
       ctx.log(`[Interpolate] ${sourceFps}fps -> ${masterFps}fps via rife-ncnn-vulkan...`);
 
-      await runCmd([ffmpeg, "-y", "-i", rawClip, resolve(srcFrames, "%08d.png")]);
+      await runtime.run([ffmpeg, "-y", "-i", rawClip, resolve(srcFrames, "%08d.png")]);
       const srcCount = (await readdir(srcFrames)).length;
       if (srcCount === 0) {
         throw new Error("no frames extracted from raw clip");
       }
-      const targetCount = Math.max(srcCount, Math.round((srcCount * masterFps) / sourceFps));
 
-      // Some rife installs resolve models relative to the binary; others need the
-      // model dir passed explicitly. RIFE_MODEL (optional) covers the latter.
+      const targetCount = Math.max(srcCount, Math.round((srcCount * masterFps) / sourceFps));
       const rifeArgs = [rife, "-i", srcFrames, "-o", outFrames, "-n", String(targetCount)];
       if (process.env.RIFE_MODEL) {
         rifeArgs.push("-m", process.env.RIFE_MODEL);
       }
-      await runCmd(rifeArgs);
+      await runtime.run(rifeArgs);
+
+      const outputCount = (await readdir(outFrames)).length;
+      if (outputCount < targetCount) {
+        throw new Error(`rife produced ${outputCount} frames; expected at least ${targetCount}`);
+      }
+
       const masterClipPath = resolve(masterDir, `${run.id}.mov`);
       const masterProxyClipPath = resolve(masterDir, `${run.id}-proxy.mp4`);
-      await runCmd([
+      await runtime.run([
         ffmpeg,
         "-y",
         "-framerate",
@@ -146,7 +188,7 @@ export const interpolate: Stage = async (run, ctx) => {
         "yuv422p10le",
         masterClipPath,
       ]);
-      await runCmd([
+      await runtime.run([
         ffmpeg,
         "-y",
         "-framerate",
@@ -166,6 +208,8 @@ export const interpolate: Stage = async (run, ctx) => {
 
       run.artifacts.masterClip = masterClipPath;
       run.artifacts.masterProxyClip = masterProxyClipPath;
+      run.artifacts.masterMode = "interpolated";
+      run.artifacts.masterNote = undefined;
       run.cost.push({
         stage: "interpolate",
         provider: "rife-ncnn-vulkan",
@@ -173,19 +217,12 @@ export const interpolate: Stage = async (run, ctx) => {
         amountUsd: 0,
       });
       ctx.log(
-        `[Interpolate] master written (${srcCount} -> ${targetCount} frames): ${masterClipPath}`,
-      );
-      return;
-    } catch (err) {
-      ctx.log(
-        `[Interpolate] failed (${err instanceof Error ? err.message : err}); passing raw clip through.`,
+        `[Interpolate] master written (${srcCount} -> ${outputCount} frames): ${masterClipPath}`,
       );
     } finally {
       await rm(work, { recursive: true, force: true });
     }
-  } else {
-    ctx.log(`[Interpolate] rife/ffmpeg not found; passing raw clip through.`);
-  }
+  };
+}
 
-  await passThrough(run, rawClip, masterDir);
-};
+export const interpolate = createInterpolate();

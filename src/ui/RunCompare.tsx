@@ -105,10 +105,13 @@ export function RunCompare() {
             <option value={0.1}>0.1x Frame-by-Frame</option>
           </select>
           <button
+            type="button"
             onClick={() => {
               const videos = document.querySelectorAll("video");
               if (isPlaying) {
-                videos.forEach((v) => v.pause());
+                videos.forEach((video) => {
+                  video.pause();
+                });
                 setIsPlaying(false);
               } else {
                 videos.forEach((v) => {
@@ -127,9 +130,9 @@ export function RunCompare() {
 
       <main className="flex-1">
         <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4 h-full">
-          {columns.map((col, idx) => (
+          {columns.map((col) => (
             <div
-              key={idx}
+              key={col.title}
               className="flex flex-col rounded-lg border border-border bg-surface overflow-hidden shadow-sm"
             >
               <div className="p-4 border-b border-border bg-surfaceRaised">

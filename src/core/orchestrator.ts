@@ -6,7 +6,7 @@
  */
 
 import type { PipelineContext } from "@/core/pipeline";
-import { isGate, isTerminal, NEXT_STATUS, type Run, transition } from "@/core/run";
+import { clearRunFailure, isGate, isTerminal, NEXT_STATUS, type Run, transition } from "@/core/run";
 import { STAGES } from "@/stages";
 
 /**
@@ -16,7 +16,8 @@ import { STAGES } from "@/stages";
 export async function advance(run: Run, ctx: PipelineContext): Promise<Run> {
   while (!isGate(run.status) && !isTerminal(run.status)) {
     const from = run.status;
-    const stage = STAGES[from];
+    const previousFailure = run.lastError;
+    const stage = ctx.stages?.[from] ?? STAGES[from];
     if (!stage) {
       throw new Error(`no stage handler for status: ${from}`);
     }
@@ -26,7 +27,20 @@ export async function advance(run: Run, ctx: PipelineContext): Promise<Run> {
     }
     ctx.log(`▶ ${from}`);
     await stage(run, ctx);
+    clearRunFailure(run);
     transition(run, next, "stage");
+
+    if (next === "ready" && run.artifacts.exportPackage) {
+      try {
+        await ctx.export.finalize(run, run.artifacts.exportPackage);
+      } catch (error) {
+        run.status = from;
+        run.lastError = previousFailure;
+        run.events.pop();
+        throw error;
+      }
+    }
+
     await ctx.store.save(run);
   }
 
@@ -63,7 +77,7 @@ export async function passGate(
     if (!run.concept) {
       throw new Error(`run ${run.id} has no concept to finalise at gate_a`);
     }
-    let finalisePayload: any = undefined;
+    let finalisePayload: unknown;
     run.shotSpec = await ctx.director.finalise(
       run.concept,
       run.profile.orientation,
@@ -114,7 +128,7 @@ export async function revise(run: Run, ctx: PipelineContext, instruction: string
   }
 
   ctx.log(`Revise concept: ${instruction}`);
-  let revisePayload: any = undefined;
+  let revisePayload: unknown;
   run.concept = await ctx.director.revise(run.concept, instruction, (payload) => {
     revisePayload = payload;
   });
@@ -144,11 +158,16 @@ export async function prepRegenerate(run: Run, ctx: PipelineContext): Promise<Ru
   if (run.status === "gate_a5") {
     // Re-roll image
     run.artifacts.image = undefined;
+    run.artifacts.upscaledImage = undefined;
     transition(run, "imaging", "operator", "regenerate image");
   } else if (run.status === "gate_b") {
     // Re-roll video
     run.artifacts.rawClip = undefined;
     run.artifacts.masterClip = undefined;
+    run.artifacts.masterProxyClip = undefined;
+    run.artifacts.masterMode = undefined;
+    run.artifacts.masterNote = undefined;
+    run.artifacts.providerJobId = undefined;
     transition(run, "animating", "operator", "regenerate video");
   } else {
     throw new Error(`regenerate is only valid at gate_a5 or gate_b, but run is at ${run.status}`);
@@ -181,10 +200,10 @@ export async function recover(run: Run, ctx: PipelineContext): Promise<Run> {
   }
   // Find the last event where it transitioned to "failed"
   const failEvent = run.events[run.events.length - 1];
-  if (!failEvent || failEvent.to !== "failed" || !failEvent.from) {
+  if (failEvent?.to !== "failed" || !failEvent.from) {
     throw new Error(`cannot determine previous status before failure for run ${run.id}`);
   }
-  
+
   transition(run, failEvent.from, "operator", "recovered from failure");
   await ctx.store.save(run);
   return run;

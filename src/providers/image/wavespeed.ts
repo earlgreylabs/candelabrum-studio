@@ -1,8 +1,9 @@
 import { mkdir } from "node:fs/promises";
 import { resolve } from "node:path";
 import { Client } from "wavespeed";
+import { z } from "zod";
 import type { Orientation } from "@/core/constants";
-import type { ImageArtifact, ImageProvider } from "@/core/providers";
+import type { ImageArtifact, ImageProvider, PayloadObserver } from "@/core/providers";
 import type { ShotSpec } from "@/core/run";
 
 const ESTIMATED_COST_USD = 0.03;
@@ -11,6 +12,14 @@ const ASPECT_RATIO: Record<Orientation, string> = {
   portrait: "9:16",
   landscape: "16:9",
 };
+
+const waveSpeedImageResultSchema = z.object({
+  outputs: z.union([z.string(), z.array(z.string())]),
+});
+
+function firstOutput(outputs: string | string[]): string | undefined {
+  return Array.isArray(outputs) ? outputs[0] : outputs;
+}
 
 export class WaveSpeedImageProvider implements ImageProvider {
   private client: Client;
@@ -23,7 +32,7 @@ export class WaveSpeedImageProvider implements ImageProvider {
     runId: string,
     runDir: string,
     spec: ShotSpec,
-    onPayload?: (payload: any) => void,
+    onPayload?: PayloadObserver,
   ): Promise<ImageArtifact> {
     await mkdir(runDir, { recursive: true });
     console.log(`[wavespeed] Generating base image for run ${runId}...`);
@@ -36,7 +45,7 @@ export class WaveSpeedImageProvider implements ImageProvider {
     };
     onPayload?.(payload);
 
-    const output = (await this.client.run(
+    const result = await this.client.run(
       "wavespeed-ai/flux-dev",
       {
         prompt: spec.imagePrompt,
@@ -46,11 +55,12 @@ export class WaveSpeedImageProvider implements ImageProvider {
       {
         enableSyncMode: true,
       },
-    )) as any;
+    );
 
-    const imageUrl = output?.outputs?.[0] || output?.outputs;
-    if (!imageUrl || typeof imageUrl !== "string") {
-      throw new Error(`WaveSpeed API did not return a valid image URL: ${JSON.stringify(output)}`);
+    const parsed = waveSpeedImageResultSchema.safeParse(result);
+    const imageUrl = parsed.success ? firstOutput(parsed.data.outputs) : undefined;
+    if (!imageUrl) {
+      throw new Error(`WaveSpeed API did not return a valid image URL: ${JSON.stringify(result)}`);
     }
 
     console.log(`[wavespeed] Downloading generated image from ${imageUrl}...`);

@@ -33,6 +33,14 @@ not relearn the same thing twice. Newest at the top of each section.
 
 ## Dashboard / server (Hono + Vite)
 
+- **Deduplicate both execution and mutation.** Guarding background `advance()` calls
+  prevents duplicate stages, but Gate A finalisation and concept revision happen
+  before background execution. Serialize operator mutations per run id as well, or
+  concurrent requests can still duplicate paid LLM work.
+- **A retryable failure is not a terminal pipeline position.** Keep `status` at the
+  stage that failed and persist a separate structured `lastError`. The dashboard can
+  explain the pause and retry the same status; `failed` is reserved for legacy or
+  genuinely unrecoverable runs.
 - **Register specific routes before parameterised ones.** `/api/runs/events` was
   shadowed by `/api/runs/:id` (matched `events` as an id → 404). Hono matches in
   registration order.
@@ -52,6 +60,23 @@ not relearn the same thing twice. Newest at the top of each section.
 
 ## Process / testing
 
+- **Test orchestration with stage substitutions, not fake media files passed to real
+  binaries.** Once interpolation stopped swallowing errors, text pretending to be an
+  MP4 correctly failed on machines with ffmpeg installed. `PipelineContext.stages`
+  keeps orchestration tests deterministic while focused stage tests own media logic.
+- **Persist run JSON atomically.** Write metadata to a unique temporary file in the
+  run directory, then rename it over `metadata.json`. A crash must leave either the
+  previous valid checkpoint or the new one, never partial JSON.
+- **Stage retries must be idempotent.** Before paying a provider or repeating heavy
+  local work, reuse an existing persisted artifact. Regeneration remains explicit
+  because it clears the relevant artifact first.
+- **Missing tools and broken tools are different states.** Missing optional local
+  binaries may produce a clearly labelled pass-through master. If installed tools
+  fail or produce incomplete output, surface a resumable stage error instead of
+  silently shipping the raw clip as a successful master.
+- **Write export metadata after the run becomes `ready`.** If final metadata writing
+  fails, roll the transition back to `exporting`; otherwise the run is terminal but
+  its package is incomplete and cannot be retried.
 - **Tests must not write to the live data dir.** The reject test created runs in
   the real `runs/` and "cleaned" a different (nonexistent) path, so every run
   polluted the dashboard. Track created ids and remove exactly those; never bulk-rm

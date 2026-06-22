@@ -9,6 +9,10 @@ export const animate: Stage = async (run, ctx) => {
   if (!run.artifacts.image) {
     throw new Error(`run ${run.id} has no base image artifact`);
   }
+  if (run.artifacts.rawClip && (await Bun.file(run.artifacts.rawClip).exists())) {
+    ctx.log(`[Animate] Reusing persisted raw clip for run ${run.id}.`);
+    return;
+  }
 
   const rendersRawDir = resolve(ctx.settings.paths.renders, "raw");
   await mkdir(rendersRawDir, { recursive: true });

@@ -56,7 +56,12 @@ const fakeExport: Exporter = {
   async package(run, readyDir) {
     const dir = join(readyDir, run.id);
     await Bun.write(join(dir, "metadata.json"), "stub");
-    return { dir, video: join(dir, "video.mp4") };
+    const video = join(dir, "video.mp4");
+    await Bun.write(video, "stub video");
+    return { dir, video };
+  },
+  async finalize(run, packageDir) {
+    await Bun.write(join(packageDir, "metadata.json"), JSON.stringify(run, null, 2));
   },
 };
 
@@ -88,6 +93,14 @@ describe("orchestrator", () => {
       image: fakeImage,
       video: fakeVideo,
       export: fakeExport,
+      stages: {
+        interpolating: async (run) => {
+          run.artifacts.masterClip = run.artifacts.rawClip;
+          run.artifacts.masterProxyClip = run.artifacts.rawClip;
+          run.artifacts.masterMode = "pass-through";
+          run.artifacts.masterNote = "test fixture";
+        },
+      },
       log: () => {},
       notify: () => {},
     };
@@ -125,6 +138,11 @@ describe("orchestrator", () => {
     await approve(run, ctx); // gate_b -> caption + export -> ready
     expect(run.status).toBe("ready");
     expect(run.artifacts.exportPackage).toBeDefined();
+    const packaged = JSON.parse(
+      await Bun.file(join(run.artifacts.exportPackage as string, "metadata.json")).text(),
+    ) as Run;
+    expect(packaged.status).toBe("ready");
+    expect(packaged.artifacts.exportPackage).toBe(run.artifacts.exportPackage);
   });
 
   test("revise concept updates concept draft without advancing", async () => {
@@ -168,6 +186,7 @@ describe("orchestrator", () => {
       image: fakeImage,
       video: fakeVideo,
       export: fakeExport,
+      stages: ctx.stages,
       log: () => {},
       notify: () => {},
     };
@@ -209,5 +228,38 @@ describe("orchestrator", () => {
     const run = createRun(settings, { orientation: "portrait" });
     await store.save(run);
     await expect(approve(run, ctx)).rejects.toThrow(/not at a gate/);
+  });
+
+  test("keeps export resumable when final metadata cannot be written", async () => {
+    const run = await startRun();
+    await approve(run, ctx);
+    await approve(run, ctx);
+    let packageCalls = 0;
+    ctx.export = {
+      async package(candidate, readyDir) {
+        packageCalls += 1;
+        return fakeExport.package(candidate, readyDir);
+      },
+      async finalize() {
+        throw new Error("metadata disk full");
+      },
+    };
+
+    await expect(approve(run, ctx)).rejects.toThrow("metadata disk full");
+    expect(run.status).toBe("exporting");
+    expect(run.events.at(-1)?.to).toBe("exporting");
+    expect(packageCalls).toBe(1);
+
+    ctx.export = {
+      async package(candidate, readyDir) {
+        packageCalls += 1;
+        return fakeExport.package(candidate, readyDir);
+      },
+      finalize: fakeExport.finalize,
+    };
+    await advance(run, ctx);
+
+    expect(run.status).toBe("ready");
+    expect(packageCalls).toBe(1);
   });
 });

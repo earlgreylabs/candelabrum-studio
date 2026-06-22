@@ -2,7 +2,7 @@ import { mkdir } from "node:fs/promises";
 import { resolve } from "node:path";
 import { generateText, type LanguageModel } from "ai";
 import type { Orientation } from "@/core/constants";
-import type { ImageArtifact, ImageProvider } from "@/core/providers";
+import type { ImageArtifact, ImageProvider, PayloadObserver } from "@/core/providers";
 import type { ShotSpec } from "@/core/run";
 import { modelIdOf } from "@/providers/model-id";
 
@@ -31,7 +31,7 @@ export class GeminiImageProvider implements ImageProvider {
     runId: string,
     runDir: string,
     spec: ShotSpec,
-    onPayload?: (payload: any) => void,
+    onPayload?: PayloadObserver,
   ): Promise<ImageArtifact> {
     await mkdir(runDir, { recursive: true });
     console.log(`[gemini] Generating base image for run ${runId}...`);

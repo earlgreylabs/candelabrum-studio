@@ -3,17 +3,18 @@ import { resolve } from "node:path";
 import { Hono } from "hono";
 import { serveStatic } from "hono/bun";
 import { streamSSE } from "hono/streaming";
+import { z } from "zod";
 import { loadSettings, loadStyle, type Settings } from "@/core/config";
+import { RunExecutor } from "@/core/executor";
 import {
-  advance,
   passGate,
   prepRegenerate,
+  recover as recoverRun,
   reject as rejectRun,
   revise as reviseRun,
-  recover as recoverRun,
 } from "@/core/orchestrator";
 import type { PipelineContext } from "@/core/pipeline";
-import { type Run, transition, createRun } from "@/core/run";
+import { createRun, isGate, isTerminal, type Run, recordRunFailure } from "@/core/run";
 import { RunStore } from "@/core/store";
 import { resolveDirector } from "@/providers/director";
 import { resolveExporter } from "@/providers/export";
@@ -22,6 +23,12 @@ import { resolveVideo } from "@/providers/video";
 
 const app = new Hono();
 const configDir = resolve(process.cwd(), "config");
+const executor = new RunExecutor();
+const createRunRequestSchema = z.object({
+  orientation: z.enum(["portrait", "landscape"]).default("portrait"),
+  style: z.string().min(1).optional().default("cosmic-scifi"),
+  lore: z.string().min(1).optional(),
+});
 
 async function buildContext(
   settings: Settings,
@@ -53,23 +60,33 @@ async function buildContext(
   };
 }
 
-/**
- * Drive `advance` outside the request/response cycle. A stage may block
- * indefinitely (a `ManualInbox` awaiting a file drop), so the endpoint returns
- * as soon as the gate transition is persisted and progress is observed over the
- * SSE stream. On failure the run is marked `failed` and persisted, since nothing
- * awaits this promise.
- */
-function advanceInBackground(run: Run, ctx: PipelineContext): void {
-  void advance(run, ctx).catch(async (err) => {
-    console.error(`Background advance failed for run ${run.id}:`, err);
+function startRun(run: Run, ctx: PipelineContext): boolean {
+  return executor.start(run, ctx).started;
+}
+
+async function resumeInterruptedRuns(): Promise<void> {
+  const settings = await loadSettings(configDir);
+  const store = new RunStore(settings.paths.runs);
+  const runs = await store.list();
+  const interrupted = runs.filter((run) => !isGate(run.status) && !isTerminal(run.status));
+  let resumed = 0;
+
+  for (const run of interrupted) {
     try {
-      transition(run, "failed", "stage", err instanceof Error ? err.message : String(err));
-      await ctx.store.save(run);
-    } catch (saveErr) {
-      console.error(`Failed to persist failed state for run ${run.id}:`, saveErr);
+      const ctx = await buildContext(settings, store, run);
+      if (startRun(run, ctx)) {
+        resumed += 1;
+      }
+    } catch (error) {
+      console.error(`[Server] could not resume run ${run.id}:`, error);
+      recordRunFailure(run, error);
+      await store.save(run);
     }
-  });
+  }
+
+  if (resumed > 0) {
+    console.log(`[Server] resumed ${resumed} interrupted run(s)`);
+  }
 }
 
 // Basic health check
@@ -88,22 +105,19 @@ app.post("/api/runs", async (c) => {
   const settings = await loadSettings(configDir);
   const store = new RunStore(settings.paths.runs);
 
-  let orientation: any = "portrait";
-  let styleId: string | undefined = "cosmic-scifi";
-  let lore: string | undefined;
-
-  if (c.req.header("content-type")?.includes("application/json")) {
-    const body = await c.req.json();
-    if (body.orientation) orientation = body.orientation;
-    if (body.style) styleId = body.style;
-    if (body.lore) lore = body.lore;
-  }
-
   try {
-    const run = createRun(settings, { orientation, style: styleId, lore });
+    const body = c.req.header("content-type")?.includes("application/json")
+      ? await c.req.json()
+      : {};
+    const input = createRunRequestSchema.parse(body);
+    const run = createRun(settings, {
+      orientation: input.orientation,
+      style: input.style,
+      lore: input.lore,
+    });
     await store.save(run);
     const ctx = await buildContext(settings, store, run);
-    advanceInBackground(run, ctx);
+    startRun(run, ctx);
     return c.json({ run }, 201);
   } catch (err) {
     console.error("Failed to create run:", err);
@@ -157,9 +171,6 @@ app.post("/api/runs/:id/advance", async (c) => {
   const store = new RunStore(settings.paths.runs);
   const id = c.req.param("id");
   try {
-    const run = await store.load(id);
-    const ctx = await buildContext(settings, store, run);
-    // Parse optional note from body if any
     let note: string | undefined;
     let caption: string | undefined;
     if (c.req.header("content-type")?.includes("application/json")) {
@@ -168,10 +179,13 @@ app.post("/api/runs/:id/advance", async (c) => {
       caption = body.caption;
     }
 
-    // Pass the gate synchronously, then advance through the (possibly blocking)
-    // next stage in the background; the dashboard tracks progress over SSE.
-    const updated = await passGate(run, ctx, note, caption);
-    advanceInBackground(updated, ctx);
+    const updated = await executor.mutate(id, async () => {
+      const run = await store.load(id);
+      const ctx = await buildContext(settings, store, run);
+      const passed = await passGate(run, ctx, note, caption);
+      startRun(passed, ctx);
+      return passed;
+    });
     return c.json({ run: updated }, 202);
   } catch (err) {
     console.error(`Failed to advance run ${id}:`, err);
@@ -185,15 +199,17 @@ app.post("/api/runs/:id/reject", async (c) => {
   const store = new RunStore(settings.paths.runs);
   const id = c.req.param("id");
   try {
-    const run = await store.load(id);
-    const ctx = await buildContext(settings, store, run);
     let note: string | undefined;
     if (c.req.header("content-type")?.includes("application/json")) {
       const body = await c.req.json();
       note = body.note;
     }
 
-    const updated = await rejectRun(run, ctx, note);
+    const updated = await executor.mutate(id, async () => {
+      const run = await store.load(id);
+      const ctx = await buildContext(settings, store, run);
+      return rejectRun(run, ctx, note);
+    });
     return c.json({ run: updated });
   } catch (err) {
     console.error(`Failed to reject run ${id}:`, err);
@@ -207,9 +223,6 @@ app.post("/api/runs/:id/revise", async (c) => {
   const store = new RunStore(settings.paths.runs);
   const id = c.req.param("id");
   try {
-    const run = await store.load(id);
-    const ctx = await buildContext(settings, store, run);
-
     let instruction = "";
     if (c.req.header("content-type")?.includes("application/json")) {
       const body = await c.req.json();
@@ -219,7 +232,11 @@ app.post("/api/runs/:id/revise", async (c) => {
       return c.json({ error: "instruction is required for revise" }, 400);
     }
 
-    const updated = await reviseRun(run, ctx, instruction);
+    const updated = await executor.mutate(id, async () => {
+      const run = await store.load(id);
+      const ctx = await buildContext(settings, store, run);
+      return reviseRun(run, ctx, instruction);
+    });
     return c.json({ run: updated });
   } catch (err) {
     console.error(`Failed to revise run ${id}:`, err);
@@ -233,13 +250,13 @@ app.post("/api/runs/:id/regenerate", async (c) => {
   const store = new RunStore(settings.paths.runs);
   const id = c.req.param("id");
   try {
-    const run = await store.load(id);
-    const ctx = await buildContext(settings, store, run);
-
-    // Step back synchronously, then re-run the (possibly blocking) stage in the
-    // background; the dashboard tracks progress over SSE.
-    const updated = await prepRegenerate(run, ctx);
-    advanceInBackground(updated, ctx);
+    const updated = await executor.mutate(id, async () => {
+      const run = await store.load(id);
+      const ctx = await buildContext(settings, store, run);
+      const prepared = await prepRegenerate(run, ctx);
+      startRun(prepared, ctx);
+      return prepared;
+    });
     return c.json({ run: updated }, 202);
   } catch (err) {
     console.error(`Failed to regenerate run ${id}:`, err);
@@ -258,8 +275,8 @@ app.post("/api/runs/:id/resume", async (c) => {
 
     // Advance the current state in the background. Useful if the node process
     // crashed or timed out while waiting for a long-running external job.
-    advanceInBackground(run, ctx);
-    return c.json({ run }, 202);
+    const started = startRun(run, ctx);
+    return c.json({ run, started }, 202);
   } catch (err) {
     console.error(`Failed to resume run ${id}:`, err);
     return c.json({ error: err instanceof Error ? err.message : String(err) }, 400);
@@ -272,12 +289,13 @@ app.post("/api/runs/:id/recover", async (c) => {
   const store = new RunStore(settings.paths.runs);
   const id = c.req.param("id");
   try {
-    const run = await store.load(id);
-    const ctx = await buildContext(settings, store, run);
-
-    // Revert the failed status back to what it was, then advance.
-    const recovered = await recoverRun(run, ctx);
-    advanceInBackground(recovered, ctx);
+    const recovered = await executor.mutate(id, async () => {
+      const run = await store.load(id);
+      const ctx = await buildContext(settings, store, run);
+      const restored = await recoverRun(run, ctx);
+      startRun(restored, ctx);
+      return restored;
+    });
     return c.json({ run: recovered }, 202);
   } catch (err) {
     console.error(`Failed to recover run ${id}:`, err);
@@ -338,6 +356,12 @@ app.get("*", async (c) => {
 
 const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 console.log(`[Server] Starting on http://127.0.0.1:${port}`);
+
+if (import.meta.main) {
+  void resumeInterruptedRuns().catch((error) => {
+    console.error("[Server] failed to resume interrupted runs:", error);
+  });
+}
 
 export default {
   port,

@@ -6,7 +6,7 @@
 
 import type { Settings, Style } from "@/core/config";
 import type { DirectorLLM, Exporter, ImageProvider, VideoProvider } from "@/core/providers";
-import type { Run } from "@/core/run";
+import type { Run, RunStatus } from "@/core/run";
 import type { RunStore } from "@/core/store";
 
 export interface PipelineContext {
@@ -22,6 +22,8 @@ export interface PipelineContext {
   export: Exporter;
   /** The active style preset, if the run was created with one. */
   style?: Style;
+  /** Focused stage substitutions for deterministic orchestration tests. */
+  stages?: Partial<Record<RunStatus, Stage>>;
   log: (message: string) => void;
   notify: (title: string, message: string) => void;
 }

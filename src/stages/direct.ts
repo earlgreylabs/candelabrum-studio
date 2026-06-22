@@ -9,7 +9,12 @@ import type { Stage } from "@/core/pipeline";
 const CONCEPT_COUNT = 3;
 
 export const direct: Stage = async (run, ctx) => {
-  let proposePayload: any = undefined;
+  if (run.concept) {
+    ctx.log(`[Direct] Reusing persisted concept for run ${run.id}.`);
+    return;
+  }
+
+  let proposePayload: unknown;
   const concepts = await ctx.director.proposeConcepts(
     {
       count: CONCEPT_COUNT,

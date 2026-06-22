@@ -9,7 +9,12 @@ import { generateObject, type LanguageModel } from "ai";
 import { z } from "zod";
 import type { Style } from "@/core/config";
 import type { Orientation } from "@/core/constants";
-import type { DirectorLLM, Platform, ProposeConceptsInput } from "@/core/providers";
+import type {
+  DirectorLLM,
+  PayloadObserver,
+  Platform,
+  ProposeConceptsInput,
+} from "@/core/providers";
 import { type Concept, conceptSchema, type ShotSpec, shotSpecSchema } from "@/core/run";
 import { modelIdOf } from "@/providers/model-id";
 
@@ -31,7 +36,7 @@ export function createClaudeDirector(model: LanguageModel): DirectorLLM {
     modelId: modelIdOf(model),
     async proposeConcepts(
       { count, style, lore, history }: ProposeConceptsInput,
-      onPayload?: (payload: any) => void,
+      onPayload?: PayloadObserver,
     ): Promise<Concept[]> {
       const messages = [
         {
@@ -67,7 +72,7 @@ export function createClaudeDirector(model: LanguageModel): DirectorLLM {
     async revise(
       concept: Concept,
       instruction: string,
-      onPayload?: (payload: any) => void,
+      onPayload?: PayloadObserver,
     ): Promise<Concept> {
       const messages = [
         {
@@ -97,7 +102,7 @@ export function createClaudeDirector(model: LanguageModel): DirectorLLM {
       concept: Concept,
       orientation: Orientation,
       style?: Style,
-      onPayload?: (payload: any) => void,
+      onPayload?: PayloadObserver,
     ): Promise<ShotSpec> {
       const messages = [
         {
@@ -141,7 +146,7 @@ export function createClaudeDirector(model: LanguageModel): DirectorLLM {
     async caption(
       shotSpec: ShotSpec,
       platform: Platform,
-      onPayload?: (payload: any) => void,
+      onPayload?: PayloadObserver,
     ): Promise<string> {
       const messages = [
         {

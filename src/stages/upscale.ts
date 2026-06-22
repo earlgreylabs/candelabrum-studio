@@ -1,5 +1,5 @@
-import { copyFile, mkdir } from "node:fs/promises";
-import { extname, resolve, dirname } from "node:path";
+import { copyFile } from "node:fs/promises";
+import { dirname, extname, resolve } from "node:path";
 import type { Stage } from "@/core/pipeline";
 import type { Run } from "@/core/run";
 
@@ -26,6 +26,11 @@ export const upscale: Stage = async (run, ctx) => {
   if (!run.artifacts.image) {
     throw new Error(`run ${run.id} has no base image to upscale`);
   }
+  if (run.artifacts.upscaledImage && (await Bun.file(run.artifacts.upscaledImage).exists())) {
+    ctx.log(`[Upscale] Reusing persisted upscaled image for run ${run.id}.`);
+    return;
+  }
+
   const imagePath = run.artifacts.image;
   const ext = extname(imagePath);
 

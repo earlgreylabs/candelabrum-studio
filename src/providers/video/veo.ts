@@ -1,7 +1,7 @@
 import { mkdir, readFile } from "node:fs/promises";
 import { extname, resolve } from "node:path";
 import type { Orientation } from "@/core/constants";
-import type { VideoArtifact, VideoProvider } from "@/core/providers";
+import type { PayloadObserver, VideoArtifact, VideoProvider } from "@/core/providers";
 import type { ShotSpec } from "@/core/run";
 
 // Veo bills per second of generated video; a single clip runs into dollars. Rough
@@ -22,6 +22,10 @@ const MIME_BY_EXT: Record<string, string> = {
   ".jpeg": "image/jpeg",
   ".png": "image/png",
 };
+
+function isRetryableStatus(status: number): boolean {
+  return status === 408 || status === 429 || status >= 500;
+}
 
 export interface VeoProviderOptions {
   fetch?: typeof fetch;
@@ -67,14 +71,14 @@ export class VeoVideoProvider implements VideoProvider {
     renderDir: string,
     spec: ShotSpec,
     baseImagePath: string,
-    onPayload?: (payload: any) => void,
+    onPayload?: PayloadObserver,
     existingJobId?: string,
     onJobId?: (jobId: string) => Promise<void>,
   ): Promise<VideoArtifact> {
     await mkdir(renderDir, { recursive: true });
 
     let operationName = existingJobId;
-    let payload: any = undefined;
+    let payload: unknown;
 
     if (!operationName) {
       console.log(`[veo] Animating base image for run ${runId} with ${this.modelId}...`);
@@ -145,7 +149,12 @@ export class VeoVideoProvider implements VideoProvider {
         headers: { "x-goog-api-key": this.apiKey },
       });
       if (!res.ok) {
-        throw new Error(`[veo] operation poll failed (${res.status}): ${await res.text()}`);
+        const detail = await res.text();
+        if (isRetryableStatus(res.status)) {
+          console.log(`[veo] transient poll failure (${res.status}); retrying: ${detail}`);
+          continue;
+        }
+        throw new Error(`[veo] operation poll failed (${res.status}): ${detail}`);
       }
       const op = (await res.json()) as VeoOperation;
       if (op.error) {
@@ -166,11 +175,16 @@ export class VeoVideoProvider implements VideoProvider {
       return Buffer.from(video.bytesBase64Encoded, "base64");
     }
     if (video?.uri) {
-      const res = await this.fetch(video.uri, { headers: { "x-goog-api-key": this.apiKey } });
-      if (!res.ok) {
-        throw new Error(`[veo] video download failed (${res.status})`);
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        const res = await this.fetch(video.uri, { headers: { "x-goog-api-key": this.apiKey } });
+        if (res.ok) {
+          return new Uint8Array(await res.arrayBuffer());
+        }
+        if (!isRetryableStatus(res.status) || attempt === 3) {
+          throw new Error(`[veo] video download failed (${res.status})`);
+        }
+        await Bun.sleep(this.pollMs);
       }
-      return new Uint8Array(await res.arrayBuffer());
     }
     throw new Error(
       `[veo] operation done but no video in response: ${JSON.stringify(op.response)}`,

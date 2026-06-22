@@ -4,12 +4,7 @@ import type { ImageArtifact, ImageProvider } from "@/core/providers";
 import type { ShotSpec } from "@/core/run";
 
 export class ManualInboxImageProvider implements ImageProvider {
-  async generate(
-    runId: string,
-    runDir: string,
-    spec: ShotSpec,
-    onPayload?: (payload: any) => void,
-  ): Promise<ImageArtifact> {
+  async generate(runId: string, runDir: string, spec: ShotSpec): Promise<ImageArtifact> {
     const inboxDir = resolve(runDir, "inbox");
     await mkdir(inboxDir, { recursive: true });
 
