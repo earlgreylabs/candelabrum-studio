@@ -86,6 +86,17 @@ The application utilizes a classic sidebar navigation model with a persistent to
 
 The user journey is defined by the "Gates"—the points where the orchestration pauses and requires human approval.
 
+Every run detail view includes a keyboard-accessible pipeline progress stepper:
+Direct, Gate A, Image, Gate A.5, Upscale, Animate, Interpolate, Gate B, Caption,
+Export.
+Selecting a step opens an anchored explanation panel showing its purpose, input,
+output, cost behavior, selected provider/model, and current failure or fallback.
+
+Every action that may invoke a model shows only providers capable of that
+operation, its resolved model, availability, and estimated cost when known. The
+provider choice and approval are submitted atomically. Cancelling leaves the run
+at its current gate; it is distinct from rejecting the run.
+
 ### Pipeline Board (Kanban View)
 
 The default landing page. A Kanban board visualizing all active `Runs` moving from left to right.

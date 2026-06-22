@@ -6,6 +6,7 @@
  */
 
 import type { PipelineContext } from "@/core/pipeline";
+import { selectedProvider } from "@/core/provider-selection";
 import { clearRunFailure, isGate, isTerminal, NEXT_STATUS, type Run, transition } from "@/core/run";
 import { STAGES } from "@/stages";
 
@@ -68,7 +69,7 @@ export async function passGate(
   }
 
   // If we are at Gate B, we can optionally override the caption draft
-  if (run.status === "gate_b" && caption && run.shotSpec) {
+  if (run.status === "gate_b" && caption !== undefined && run.shotSpec) {
     run.shotSpec.captionDraft = caption;
   }
 
@@ -91,7 +92,7 @@ export async function passGate(
     // "Refine text": the director turns the concept into the shot spec prompts.
     run.cost.push({
       stage: "finalise",
-      provider: ctx.settings.providers.director,
+      provider: selectedProvider(run.providerSelections, ctx.settings, "finalise"),
       model: ctx.director.modelId,
       amountUsd: 0,
       payload: finalisePayload,
@@ -139,7 +140,7 @@ export async function revise(run: Run, ctx: PipelineContext, instruction: string
   });
   run.cost.push({
     stage: "revise",
-    provider: ctx.settings.providers.director,
+    provider: selectedProvider(run.providerSelections, ctx.settings, "revision"),
     model: ctx.director.modelId,
     amountUsd: 0,
     payload: revisePayload,
@@ -156,13 +157,13 @@ export async function revise(run: Run, ctx: PipelineContext, instruction: string
  */
 export async function prepRegenerate(run: Run, ctx: PipelineContext): Promise<Run> {
   const statusHandlers: { [key: string]: () => void } = {
-    "gate_a5": () => {
+    gate_a5: () => {
       // Re-roll image
       run.artifacts.image = undefined;
       run.artifacts.upscaledImage = undefined;
       transition(run, "imaging", "operator", "regenerate image");
     },
-    "gate_b": () => {
+    gate_b: () => {
       // Re-roll video
       run.artifacts.rawClip = undefined;
       run.artifacts.masterClip = undefined;

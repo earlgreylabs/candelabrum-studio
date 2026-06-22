@@ -159,14 +159,21 @@ In order, each must pass before a slice is done:
   `core`. No Python. The only spawned processes are `rife-ncnn-vulkan` and
   `ffmpeg`.
 - Every provider (LLM, image, video, export, publish) sits behind a small
-  interface; swapping one is config, not code. Manual steps are `ManualInbox`
-  adapters satisfying the same interface; never branch the pipeline on
-  auto-versus-manual.
+  interface and declares its supported operation capabilities. `settings.toml`
+  supplies defaults; each model-backed operation persists its operator-selected
+  provider before invocation. Manual steps are `ManualInbox` adapters satisfying
+  the same interface; never branch the pipeline on auto-versus-manual.
 - Director LLM via the Vercel AI SDK provider abstraction (Claude default, Gemini
   a config swap).
 - State is JSON on disk: `runs/<id>/metadata.json`, persisted after every stage
   transition; the `status` enum is the single source of run position and drives
   resume. No second progress flag.
+- Never automatically resubmit an uncertain paid operation. Automatic recovery
+  is limited to local stages and persisted remote jobs that can resume without a
+  new submission; a new paid attempt requires explicit operator authorization.
+- The Hono app is created from injectable runtime dependencies; route modules own
+  HTTP concerns, while orchestration remains in `core`. Server tests use temporary
+  storage and fake adapters, never live operator run paths.
 - Colour grading is delivery-only: the ProRes master stays flat / ungraded; the
   LUT and watermark apply to the H.264 delivery encode; the FCPXML references the
   ungraded master with the LUT as non-destructive metadata.

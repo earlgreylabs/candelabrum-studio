@@ -1,7 +1,8 @@
 # Pipeline: the stages and the gates
 
-The studio is a linear pipeline with three human gates (concept, base image,
-clip). Each stage has a defined
+The studio is a linear pipeline with three creative-review gates (concept, base
+image, clip). Every model-backed operation also has an explicit cost
+authorization at the operator action that starts it. Each stage has a defined
 input and output artifact, so any stage can be run, retried, or swapped
 independently. Artifacts live on disk under a per-run directory; the orchestrator
 advances a run stage by stage and persists state after each, so a crash resumes
@@ -61,6 +62,10 @@ and state model).
   director adapter.
 - **Gate A:** the operator picks a variant or replies with edits ("more synthwave
   purple, less orange"); the agent revises; the loop ends on `approve`.
+- **Cost authorization:** creating a run names the concept provider and requires
+  an explicit Generate Concepts action. Every revision names its text provider.
+  Gate A approval names both the shot-spec finalisation provider and the image
+  provider before either operation runs.
 
 ## 2. Image: the base still
 
@@ -85,6 +90,9 @@ Image generation costs cents while video costs the most of any stage, so catchin
 weak composition here, not after a dollar of animation, is the highest-leverage
 gate in the pipeline. Low friction: one glance, approve or regenerate, in the same
 dashboard as the other gates.
+
+The re-roll action selects and authorizes an image provider. Approval selects and
+authorizes the video provider before animation begins.
 
 ## 3. Animate: image to video
 
@@ -129,6 +137,22 @@ The pipeline pauses. A notification fires (a macOS notification plus an entry in
 the local review dashboard). The operator watches the interpolated clip and either
 approves it, rejects it (discard the run), or requests a revision (re-run from an
 earlier stage with a note). Nothing proceeds without an approval.
+
+The re-run action selects and authorizes the video provider again. Approval either
+selects a caption provider or explicitly keeps the operator-edited caption without
+another model call.
+
+## Provider selection and retries
+
+`settings.toml` supplies defaults, not immutable run-wide choices. The dashboard
+filters the provider list by operation capability, persists the selection on the
+run, and records it in the event and cost history before invoking the adapter. A
+provider can support more than one capability.
+
+An interrupted paid operation is never submitted again automatically when the
+previous result is uncertain. Local stages and a persisted remote job that can be
+polled without resubmission may resume automatically. Any new paid submission
+requires an explicit Retry action showing its provider.
 
 ## 5. Caption
 

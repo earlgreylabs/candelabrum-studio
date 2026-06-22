@@ -8,6 +8,11 @@ import { z } from "zod";
 import type { Settings } from "@/core/config";
 import { orientationSchema, outputProfileSchema } from "@/core/config";
 import type { Orientation } from "@/core/constants";
+import {
+  type ProviderCapability,
+  type ProviderSelections,
+  providerSelectionsSchema,
+} from "@/core/provider-selection";
 
 /**
  * Linear pipeline position: six stages, three human gates (A concept, A.5 base
@@ -135,6 +140,7 @@ export const runSchema = z.object({
   artifacts: runArtifactsSchema,
   events: z.array(runEventSchema),
   cost: z.array(costEntrySchema),
+  providerSelections: providerSelectionsSchema.default({}),
   overrides: overridesSchema.optional(),
   lastError: runFailureSchema.optional(),
   createdAt: z.string(),
@@ -164,9 +170,34 @@ export function createRun(settings: Settings, opts: CreateRunOptions): Run {
     status: "directing",
     profile: settings.profiles[opts.orientation],
     artifacts: {},
+    providerSelections: {
+      concept: settings.providers.director,
+      revision: settings.providers.director,
+      finalise: settings.providers.director,
+      image: settings.providers.image,
+      video: settings.providers.video,
+      caption: settings.providers.director,
+    },
     events: [{ at: now.toISOString(), type: "create", to: "directing" }],
     cost: [],
     createdAt: now.toISOString(),
+  });
+}
+
+/** Persist an auditable operator choice before invoking the matching provider. */
+export function authorizeProvider(
+  run: Run,
+  capability: ProviderCapability,
+  provider: string,
+): void {
+  const selections: ProviderSelections = { ...run.providerSelections, [capability]: provider };
+  run.providerSelections = selections;
+  run.events.push({
+    at: new Date().toISOString(),
+    type: "provider_authorized",
+    from: run.status,
+    to: run.status,
+    note: `${capability}:${provider}`,
   });
 }
 

@@ -41,6 +41,11 @@ language, one process, two spawned binaries.
 Each stage depends on an interface, not a vendor. The contracts are small on
 purpose, and are TypeScript interfaces in `core`.
 
+Provider registries also expose typed capability metadata for the dashboard and
+API. The active adapter is resolved just in time from the operation selection
+persisted on the run. `settings.toml` provides the default selection only; it is
+not rewritten to steer an individual run.
+
 - **DirectorLLM**: `proposeConcepts(style, history, n)`, `revise(concept,
   instruction)`, `finalise(concept) -> ShotSpec`, `caption(shotSpec, platform)`.
   Realised through the **Vercel AI SDK**, whose provider abstraction is exactly
@@ -67,6 +72,14 @@ watches the run's inbox directory and returns the dropped file as the artifact.
 The drop happens inside the dashboard (a drag-and-drop zone), not in the Finder.
 The orchestration code stays uniform; swapping a paid API in later is a config
 change.
+
+### Cost authorization is durable
+
+The operator action that starts a model-backed operation carries its provider
+selection. The server validates and persists that authorization before invoking
+the adapter. An uncertain interrupted call is not automatically resubmitted;
+remote jobs resume only when their persisted job id can be polled without creating
+a new charge. This prevents process recovery from silently spending again.
 
 ## Colour grading is delivery-only (no baked master)
 

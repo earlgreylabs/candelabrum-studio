@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import type { ProviderCapability, ProviderSelections } from "@/core/provider-selection";
 import type { Run, RunStatus } from "@/core/run";
+import { PipelineProgress } from "./PipelineProgress";
+import { ProviderSelect } from "./ProviderSelect";
+import { useProviderCatalog } from "./provider-catalog";
 
 // Manual (ManualInbox) stages pause the run until the operator drops a file into
 // an inbox directory. These mirror the paths the adapters create on disk.
@@ -28,6 +32,17 @@ export function RunDetail() {
   const [actionLoading, setActionLoading] = useState<boolean>(false);
   const [reviseInstruction, setReviseInstruction] = useState("");
   const [editedCaption, setEditedCaption] = useState("");
+  const [providerChoices, setProviderChoices] = useState<ProviderSelections>({});
+  const catalog = useProviderCatalog();
+
+  const providerFor = (capability: ProviderCapability): string =>
+    providerChoices[capability] ??
+    run?.providerSelections[capability] ??
+    catalog?.defaults[capability] ??
+    "";
+  const chooseProvider = (capability: ProviderCapability, provider: string) => {
+    setProviderChoices((current) => ({ ...current, [capability]: provider }));
+  };
 
   const fetchRun = useCallback(() => {
     fetch(`/api/runs/${id}`)
@@ -69,10 +84,17 @@ export function RunDetail() {
     if (!run) return;
     setActionLoading(true);
     try {
-      const body =
-        action === "advance" && run.status === "gate_b"
-          ? JSON.stringify({ caption: editedCaption })
-          : undefined;
+      const input: Record<string, string> = {};
+      if (action === "advance" && run.status === "gate_a") {
+        input.finaliseProvider = providerFor("finalise");
+        input.imageProvider = providerFor("image");
+      } else if (action === "advance" && run.status === "gate_a5") {
+        input.videoProvider = providerFor("video");
+      } else if (action === "advance" && run.status === "gate_b") {
+        input.caption = editedCaption;
+        input.captionProvider = providerFor("caption");
+      }
+      const body = action === "advance" ? JSON.stringify(input) : undefined;
 
       const res = await fetch(`/api/runs/${run.id}/${action}`, {
         method: "POST",
@@ -96,7 +118,10 @@ export function RunDetail() {
       const res = await fetch(`/api/runs/${run.id}/revise`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ instruction: reviseInstruction }),
+        body: JSON.stringify({
+          instruction: reviseInstruction,
+          provider: providerFor("revision"),
+        }),
       });
       if (!res.ok) {
         throw new Error(await errorMessage(res, "Revise failed"));
@@ -114,7 +139,12 @@ export function RunDetail() {
     if (!run) return;
     setActionLoading(true);
     try {
-      const res = await fetch(`/api/runs/${run.id}/regenerate`, { method: "POST" });
+      const capability = run.status === "gate_a5" ? "image" : "video";
+      const res = await fetch(`/api/runs/${run.id}/regenerate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ provider: providerFor(capability) }),
+      });
       if (!res.ok) {
         throw new Error(await errorMessage(res, "Regenerate failed"));
       }
@@ -129,7 +159,18 @@ export function RunDetail() {
     if (!run) return;
     setActionLoading(true);
     try {
-      const res = await fetch(`/api/runs/${run.id}/resume`, { method: "POST" });
+      const capabilityByStatus: Partial<Record<RunStatus, ProviderCapability>> = {
+        directing: "concept",
+        imaging: "image",
+        animating: "video",
+        captioning: "caption",
+      };
+      const capability = capabilityByStatus[run.status];
+      const res = await fetch(`/api/runs/${run.id}/resume`, {
+        method: "POST",
+        headers: capability ? { "Content-Type": "application/json" } : undefined,
+        body: capability ? JSON.stringify({ provider: providerFor(capability) }) : undefined,
+      });
       if (!res.ok) {
         throw new Error(await errorMessage(res, "Resume failed"));
       }
@@ -163,6 +204,22 @@ export function RunDetail() {
   const isGate = ["gate_a", "gate_a5", "gate_b"].includes(run.status);
   const drop = MANUAL_DROP[run.status];
   const totalCost = run.cost.reduce((sum, c) => sum + c.amountUsd, 0);
+  const retryCapability: ProviderCapability | undefined =
+    run.status === "directing"
+      ? "concept"
+      : run.status === "imaging"
+        ? "image"
+        : run.status === "animating"
+          ? "video"
+          : run.status === "captioning"
+            ? "caption"
+            : undefined;
+  const approvalLabel =
+    run.status === "gate_a"
+      ? "Approve & Generate Base Image"
+      : run.status === "gate_a5"
+        ? "Approve & Animate"
+        : "Approve & Export Package";
   // Stable keys for the (static, append-only) ledger without keying on the index.
   const costRows = run.cost.map((entry, idx) => ({ entry, key: `${entry.stage}-${idx}` }));
 
@@ -189,6 +246,12 @@ export function RunDetail() {
           {run.status.replace("_", " ")}
         </div>
       </header>
+
+      <PipelineProgress
+        run={run}
+        providerOptions={catalog?.options ?? []}
+        providerDefaults={catalog?.defaults ?? {}}
+      />
 
       <main className="flex-1 grid gap-8 md:grid-cols-[2fr_1fr]">
         <div className="space-y-8">
@@ -325,13 +388,51 @@ export function RunDetail() {
             <h3 className="text-lg font-medium text-primary">Actions</h3>
             {isGate ? (
               <div className="space-y-3">
+                {run.status === "gate_a" ? (
+                  <div className="space-y-3 rounded border border-border bg-background p-3">
+                    <ProviderSelect
+                      capability="finalise"
+                      label="Prompt finalization provider"
+                      options={catalog?.options ?? []}
+                      value={providerFor("finalise")}
+                      disabled={actionLoading}
+                      onChange={(provider) => chooseProvider("finalise", provider)}
+                    />
+                    <ProviderSelect
+                      capability="image"
+                      label="Base image provider"
+                      options={catalog?.options ?? []}
+                      value={providerFor("image")}
+                      disabled={actionLoading}
+                      onChange={(provider) => chooseProvider("image", provider)}
+                    />
+                  </div>
+                ) : run.status === "gate_a5" ? (
+                  <ProviderSelect
+                    capability="video"
+                    label="Animation provider"
+                    options={catalog?.options ?? []}
+                    value={providerFor("video")}
+                    disabled={actionLoading}
+                    onChange={(provider) => chooseProvider("video", provider)}
+                  />
+                ) : (
+                  <ProviderSelect
+                    capability="caption"
+                    label="Caption provider"
+                    options={catalog?.options ?? []}
+                    value={providerFor("caption")}
+                    disabled={actionLoading}
+                    onChange={(provider) => chooseProvider("caption", provider)}
+                  />
+                )}
                 <button
                   type="button"
                   onClick={() => handleAction("advance")}
                   disabled={actionLoading}
                   className="w-full rounded bg-status-ready/20 text-status-ready border border-status-ready/50 py-2 font-semibold hover:bg-status-ready/30 transition-colors disabled:opacity-50"
                 >
-                  Approve
+                  {approvalLabel}
                 </button>
                 <button
                   type="button"
@@ -355,6 +456,14 @@ export function RunDetail() {
                       value={reviseInstruction}
                       onChange={(e) => setReviseInstruction(e.target.value)}
                     />
+                    <ProviderSelect
+                      capability="revision"
+                      label="Revision provider"
+                      options={catalog?.options ?? []}
+                      value={providerFor("revision")}
+                      disabled={actionLoading}
+                      onChange={(provider) => chooseProvider("revision", provider)}
+                    />
                     <button
                       type="button"
                       onClick={handleRevise}
@@ -368,6 +477,20 @@ export function RunDetail() {
 
                 {(run.status === "gate_a5" || run.status === "gate_b") && (
                   <div className="pt-4 mt-4 border-t border-border">
+                    <ProviderSelect
+                      capability={run.status === "gate_a5" ? "image" : "video"}
+                      label={
+                        run.status === "gate_a5"
+                          ? "Re-roll image provider"
+                          : "Re-run video provider"
+                      }
+                      options={catalog?.options ?? []}
+                      value={providerFor(run.status === "gate_a5" ? "image" : "video")}
+                      disabled={actionLoading}
+                      onChange={(provider) =>
+                        chooseProvider(run.status === "gate_a5" ? "image" : "video", provider)
+                      }
+                    />
                     <button
                       type="button"
                       onClick={handleRegenerate}
@@ -389,14 +512,26 @@ export function RunDetail() {
                     <p className="mt-1 text-xs text-secondary">{run.lastError.message}</p>
                     <p className="mt-1 text-xs text-faint">Attempt {run.lastError.attempt}</p>
                     {run.lastError.retryable && (
-                      <button
-                        type="button"
-                        onClick={handleResume}
-                        disabled={actionLoading}
-                        className="mt-3 w-full rounded border border-status-warning/50 bg-status-warning/20 py-2 font-semibold text-status-warning hover:bg-status-warning/30 disabled:opacity-50"
-                      >
-                        Retry Current Stage
-                      </button>
+                      <div className="mt-3 space-y-3">
+                        {retryCapability ? (
+                          <ProviderSelect
+                            capability={retryCapability}
+                            label="Retry provider"
+                            options={catalog?.options ?? []}
+                            value={providerFor(retryCapability)}
+                            disabled={actionLoading}
+                            onChange={(provider) => chooseProvider(retryCapability, provider)}
+                          />
+                        ) : null}
+                        <button
+                          type="button"
+                          onClick={handleResume}
+                          disabled={actionLoading}
+                          className="w-full rounded border border-status-warning/50 bg-status-warning/20 py-2 font-semibold text-status-warning hover:bg-status-warning/30 disabled:opacity-50"
+                        >
+                          {retryCapability ? "Authorize Retry" : "Retry Current Stage"}
+                        </button>
+                      </div>
                     )}
                   </div>
                 )}

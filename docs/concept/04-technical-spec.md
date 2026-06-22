@@ -29,6 +29,10 @@ behind an adapter (see [02-architecture.md](02-architecture.md)). The stack is
   live in the dashboard, not split across the terminal and the Finder.
 - Both share the same `core` run model and state store. No external services are
   required beyond the configured generation providers.
+- The Hono app is assembled from injectable runtime dependencies. Route modules
+  handle HTTP validation and response mapping; orchestration remains in `core`.
+  Server tests use temporary run roots and fake adapters, never the operator's
+  live run directory.
 
 ## Default providers (hybrid posture)
 
@@ -79,6 +83,10 @@ tier). The exact Claude model id is pinned at implementation time, not here.
   **output profiles** (orientation to delivery size, fps cap, and safe zone) in
   `config/settings.toml`. `renders/` and `ready/` default to the external SSD (see
   [03-constraints-and-cost.md](03-constraints-and-cost.md)).
+- **Per-operation provider selections** in each run's metadata. The dashboard
+  filters adapters by capability and persists the choice before the matching
+  model call. Defaults seed a choice but never prevent a different selection for
+  the next operation.
 - **Secrets** (provider API keys) in a gitignored `.env`, loaded at runtime, never
   committed and never placed under `config/`.
 

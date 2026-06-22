@@ -16,9 +16,10 @@ Rules:
 
 ## Now
 
-- Milestone: pipeline resilience hardening complete. Runs now deduplicate execution and operator mutations, persist retryable errors at the current stage, auto-resume interrupted work on server boot, and reuse completed artifacts on retry.
-- Last verified checkpoint: format, Biome, `tsc`, 39 tests, and build green. Recorded fixtures cover duplicate starts, mutation serialization, resumable provider failure, Veo poll retry, installed-tool failure, explicit pass-through, and export-finalization retry. Dashboard restarted and verified `API: connected` with existing run history.
-- Media/export result: missing local tools create a labelled pass-through master; installed-tool failures pause visibly. Export always packages the real master extension and writes metadata only after `ready`.
+- Milestone: per-operation provider authorization, server modularization, and pipeline progress UX complete.
+- Last verified checkpoint: format, Biome, strict TypeScript, 53 tests, and production build green. The running dashboard was exercised at New Run, Gate A, and Gate B without submitting a paid action.
+- Provider result: capability-filtered concept, revision, finalise, image, video, caption, regenerate, and retry choices persist on the run before invocation. `settings.toml` supplies defaults only. Uncertain paid work never auto-resubmits after restart; local/manual work and persisted remote jobs can resume.
+- Structure/UI result: Hono bootstrap, runtime, routes, and HTTP helpers are separated behind injectable dependencies with temporary-storage tests. Run Detail has a ten-step accessible progress tracker and explanatory provider/cost panels.
 - Next step: complete the remaining export contract: per-run optional LUT/watermark, profile-aware delivery encode, and FCPXML handoff. Then reconcile the working Topaz stage with the optional upscale adapter decision.
 - Blockers: none.
 
@@ -46,6 +47,7 @@ Rules:
 <!-- one terse line per finished slice: "YYYY-MM-DD: slice N done + verified" -->
 
 - 2026-06-21: resilience hardening complete and verified - atomic state saves, deduplicated execution/mutations, resumable errors, idempotent stages, explicit media degradation, final export metadata, and 39 green tests.
+- 2026-06-22: per-operation provider authorization, safe paid-stage recovery, modular server, and pipeline progress UX complete and verified with 53 green tests plus live dashboard checks.
 
 ## Archive
 

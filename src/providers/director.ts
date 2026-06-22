@@ -19,6 +19,6 @@ directorRegistry.register("claude", () => {
   return createClaudeDirector(anthropic(modelId));
 });
 
-export function resolveDirector(settings: Settings): DirectorLLM {
-  return directorRegistry.resolve(settings.providers.director);
+export function resolveDirector(settings: Settings, override?: string): DirectorLLM {
+  return directorRegistry.resolve(override ?? settings.providers.director);
 }

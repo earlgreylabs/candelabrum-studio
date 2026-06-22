@@ -1,4 +1,5 @@
 import type { Stage } from "@/core/pipeline";
+import { selectedProvider } from "@/core/provider-selection";
 
 export const caption: Stage = async (run, ctx) => {
   if (!run.shotSpec) {
@@ -6,6 +7,12 @@ export const caption: Stage = async (run, ctx) => {
   }
   if (run.cost.some((entry) => entry.stage === "caption")) {
     ctx.log(`[Caption] Reusing persisted caption for run ${run.id}.`);
+    return;
+  }
+
+  const provider = selectedProvider(run.providerSelections, ctx.settings, "caption");
+  if (provider === "draft") {
+    run.cost.push({ stage: "caption", provider, model: "no model", amountUsd: 0 });
     return;
   }
 
@@ -20,7 +27,7 @@ export const caption: Stage = async (run, ctx) => {
   run.shotSpec.captionDraft = finalCaption;
   run.cost.push({
     stage: "caption",
-    provider: ctx.settings.providers.director,
+    provider,
     model: ctx.director.modelId,
     amountUsd: 0,
     payload: captionPayload,

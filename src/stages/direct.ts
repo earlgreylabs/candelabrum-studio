@@ -5,6 +5,7 @@
  */
 
 import type { Stage } from "@/core/pipeline";
+import { selectedProvider } from "@/core/provider-selection";
 
 const CONCEPT_COUNT = 3;
 
@@ -32,7 +33,7 @@ export const direct: Stage = async (run, ctx) => {
   run.concept = chosen;
   run.cost.push({
     stage: "direct",
-    provider: ctx.settings.providers.director,
+    provider: selectedProvider(run.providerSelections, ctx.settings, "concept"),
     model: ctx.director.modelId,
     amountUsd: 0,
     payload: proposePayload,
