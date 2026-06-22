@@ -1,20 +1,31 @@
-import { AlertTriangle, Check, Circle, X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { AlertTriangle, Check } from "lucide-react";
+import { Fragment, useState } from "react";
 import {
   currentPipelineStepIndex,
   PIPELINE_STEPS,
-  type PipelineStepDefinition,
   type PipelineStepId,
 } from "@/core/pipeline-steps";
 import type { ProviderCapability } from "@/core/provider-selection";
 import type { Run } from "@/core/run";
 import type { ProviderOption } from "@/providers/catalog";
+import { cn } from "./lib/cn";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogEyebrow,
+  DialogHeader,
+  DialogTitle,
+} from "./primitives/dialog";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./primitives/tooltip";
 
 interface PipelineProgressProps {
   run: Run;
   providerOptions: ProviderOption[];
   providerDefaults: Partial<Record<ProviderCapability, string>>;
 }
+
+type StepState = "complete" | "current" | "upcoming" | "error";
 
 const STEP_CAPABILITY: Partial<Record<PipelineStepId, ProviderCapability>> = {
   direct: "concept",
@@ -26,14 +37,25 @@ const STEP_CAPABILITY: Partial<Record<PipelineStepId, ProviderCapability>> = {
   caption: "caption",
 };
 
-function StepIcon({ state }: { state: "complete" | "current" | "upcoming" | "error" }) {
-  if (state === "complete") return <Check aria-hidden="true" size={14} />;
-  if (state === "error") return <AlertTriangle aria-hidden="true" size={14} />;
-  return <Circle aria-hidden="true" size={state === "current" ? 12 : 9} />;
-}
+const BADGE_BY_STATE: Record<StepState, string> = {
+  complete: "border-status-ready/50 bg-status-ready/10 text-status-ready",
+  current: "border-accent bg-accent/10 text-accent ring-4 ring-accent/15",
+  error: "border-status-danger bg-status-danger/10 text-status-danger",
+  upcoming: "border-border text-faint group-hover:border-secondary/60 group-hover:text-secondary",
+};
 
-function explanationId(step: PipelineStepDefinition): string {
-  return `pipeline-step-${step.id}`;
+const LABEL_BY_STATE: Record<StepState, string> = {
+  complete: "text-secondary",
+  current: "text-primary",
+  error: "text-status-danger",
+  upcoming: "text-faint group-hover:text-secondary",
+};
+
+function StepBadgeContent({ state, index }: { state: StepState; index: number }) {
+  if (state === "complete") return <Check aria-hidden="true" size={15} />;
+  if (state === "error") return <AlertTriangle aria-hidden="true" size={15} />;
+  if (state === "current") return <span className="h-2.5 w-2.5 rounded-full bg-current" />;
+  return <span className="text-xs font-medium tabular-nums">{index + 1}</span>;
 }
 
 export function PipelineProgress({
@@ -43,6 +65,7 @@ export function PipelineProgress({
 }: PipelineProgressProps) {
   const [selectedId, setSelectedId] = useState<PipelineStepId | null>(null);
   const currentIndex = currentPipelineStepIndex(run);
+
   const selected = PIPELINE_STEPS.find((step) => step.id === selectedId);
   const selectedCapability = selected ? STEP_CAPABILITY[selected.id] : undefined;
   const selectedProviderId = selectedCapability
@@ -51,116 +74,128 @@ export function PipelineProgress({
   const selectedProvider = providerOptions.find(
     (option) => option.capability === selectedCapability && option.id === selectedProviderId,
   );
-
-  useEffect(() => {
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setSelectedId(null);
-    };
-    window.addEventListener("keydown", closeOnEscape);
-    return () => window.removeEventListener("keydown", closeOnEscape);
-  }, []);
+  const selectedShowsError =
+    selected != null && Boolean(run.lastError) && PIPELINE_STEPS.indexOf(selected) === currentIndex;
 
   return (
     <section
       aria-label="Pipeline progress"
       className="mb-8 rounded-lg border border-border bg-surface p-4"
     >
-      <div className="overflow-x-auto pb-2">
-        <ol className="flex min-w-max items-start">
+      <TooltipProvider delayDuration={250}>
+        <ol className="flex items-start overflow-x-auto pb-1">
           {PIPELINE_STEPS.map((step, index) => {
-            const isError = index === currentIndex && Boolean(run.lastError);
-            const state = isError
-              ? "error"
-              : index < currentIndex
-                ? "complete"
-                : index === currentIndex
-                  ? "current"
-                  : "upcoming";
-            const expanded = selectedId === step.id;
+            const state: StepState =
+              index === currentIndex && run.lastError
+                ? "error"
+                : index < currentIndex
+                  ? "complete"
+                  : index === currentIndex
+                    ? "current"
+                    : "upcoming";
+            const isGate = step.kind === "gate";
+
             return (
-              <li key={step.id} className="flex items-start">
-                <button
-                  type="button"
-                  aria-current={state === "current" || state === "error" ? "step" : undefined}
-                  aria-expanded={expanded}
-                  aria-controls={expanded ? explanationId(step) : undefined}
-                  onClick={() => setSelectedId(expanded ? null : step.id)}
-                  className={`group flex w-24 flex-col items-center gap-2 rounded px-1 py-2 text-center focus:outline-none focus:ring-2 focus:ring-accent ${
-                    state === "complete"
-                      ? "text-status-ready"
-                      : state === "current"
-                        ? "text-accent"
-                        : state === "error"
-                          ? "text-status-danger"
-                          : "text-faint hover:text-secondary"
-                  }`}
-                >
-                  <span className="flex h-6 w-6 items-center justify-center rounded-full border border-current">
-                    <StepIcon state={state} />
-                  </span>
-                  <span className="text-xs font-medium">{step.label}</span>
-                </button>
+              <Fragment key={step.id}>
+                <li className="flex min-w-[4.5rem] flex-col">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        type="button"
+                        aria-current={state === "current" || state === "error" ? "step" : undefined}
+                        onClick={() => setSelectedId(step.id)}
+                        className="group flex flex-col items-center gap-2 rounded px-1 py-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                      >
+                        <span
+                          className={cn(
+                            "flex h-8 w-8 items-center justify-center border transition-colors",
+                            isGate ? "rounded-md" : "rounded-full",
+                            BADGE_BY_STATE[state],
+                          )}
+                        >
+                          <StepBadgeContent state={state} index={index} />
+                        </span>
+                        <span
+                          className={cn(
+                            "text-xs font-medium transition-colors",
+                            LABEL_BY_STATE[state],
+                          )}
+                        >
+                          {step.label}
+                        </span>
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <span className="font-medium text-primary">
+                        {isGate ? "Operator gate" : "Pipeline stage"}
+                      </span>
+                      <span className="mt-1 block">{step.description}</span>
+                    </TooltipContent>
+                  </Tooltip>
+                </li>
                 {index < PIPELINE_STEPS.length - 1 ? (
-                  <span
-                    aria-hidden="true"
-                    className={`mt-5 h-px w-5 ${index < currentIndex ? "bg-status-ready" : "bg-border"}`}
-                  />
+                  <li aria-hidden="true" className="flex min-w-[1.25rem] flex-1 pt-4">
+                    <span
+                      className={cn(
+                        "h-px w-full",
+                        index < currentIndex ? "bg-status-ready/50" : "bg-border",
+                      )}
+                    />
+                  </li>
                 ) : null}
-              </li>
+              </Fragment>
             );
           })}
         </ol>
-      </div>
+      </TooltipProvider>
 
-      {selected ? (
-        <section
-          id={explanationId(selected)}
-          className="mt-3 rounded border border-border bg-surfaceRaised p-4"
-        >
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-accent">
+      <Dialog
+        open={selected != null}
+        onOpenChange={(open) => {
+          if (!open) setSelectedId(null);
+        }}
+      >
+        {selected ? (
+          <DialogContent aria-describedby={undefined}>
+            <DialogHeader>
+              <DialogEyebrow>
                 {selected.kind === "gate" ? "Operator gate" : "Pipeline stage"}
+              </DialogEyebrow>
+              <DialogTitle>{selected.label}</DialogTitle>
+            </DialogHeader>
+
+            <DialogDescription>{selected.description}</DialogDescription>
+
+            {selectedProvider ? (
+              <p className="mt-3 text-sm text-primary">
+                Provider: <span className="font-medium text-accent">{selectedProvider.label}</span>{" "}
+                <span className="font-mono text-xs text-faint">{selectedProvider.model}</span>
               </p>
-              <h2 className="mt-1 text-base font-semibold text-primary">{selected.label}</h2>
-            </div>
-            <button
-              type="button"
-              aria-label="Close step explanation"
-              onClick={() => setSelectedId(null)}
-              className="rounded p-1 text-secondary hover:bg-surface hover:text-primary focus:outline-none focus:ring-2 focus:ring-accent"
-            >
-              <X aria-hidden="true" size={16} />
-            </button>
-          </div>
-          <p className="mt-3 text-sm text-secondary">{selected.description}</p>
-          {selectedProvider ? (
-            <p className="mt-3 text-sm text-primary">
-              Provider: <span className="font-medium text-accent">{selectedProvider.label}</span>{" "}
-              <span className="font-mono text-xs text-faint">{selectedProvider.model}</span>
-            </p>
-          ) : null}
-          <dl className="mt-3 grid gap-3 text-sm md:grid-cols-3">
-            <div>
-              <dt className="text-xs text-faint">Input</dt>
-              <dd className="mt-1 text-primary">{selected.input}</dd>
-            </div>
-            <div>
-              <dt className="text-xs text-faint">Output</dt>
-              <dd className="mt-1 text-primary">{selected.output}</dd>
-            </div>
-            <div>
-              <dt className="text-xs text-faint">Cost behavior</dt>
-              <dd className="mt-1 text-primary">{selected.cost}</dd>
-            </div>
-          </dl>
-          {run.lastError && currentIndex === PIPELINE_STEPS.indexOf(selected) ? (
-            <p className="mt-3 rounded border border-status-danger/50 bg-status-danger/10 p-2 text-sm text-status-danger">
-              Current issue: {run.lastError.message}
-            </p>
-          ) : null}
-        </section>
-      ) : null}
+            ) : null}
+
+            <dl className="mt-4 grid gap-3 text-sm md:grid-cols-3">
+              <div>
+                <dt className="text-xs text-faint">Input</dt>
+                <dd className="mt-1 text-primary">{selected.input}</dd>
+              </div>
+              <div>
+                <dt className="text-xs text-faint">Output</dt>
+                <dd className="mt-1 text-primary">{selected.output}</dd>
+              </div>
+              <div>
+                <dt className="text-xs text-faint">Cost behavior</dt>
+                <dd className="mt-1 text-primary">{selected.cost}</dd>
+              </div>
+            </dl>
+
+            {selectedShowsError && run.lastError ? (
+              <p className="mt-4 rounded border border-status-danger/50 bg-status-danger/10 p-2 text-sm text-status-danger">
+                Current issue: {run.lastError.message}
+              </p>
+            ) : null}
+          </DialogContent>
+        ) : null}
+      </Dialog>
     </section>
   );
 }

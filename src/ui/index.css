@@ -5,6 +5,10 @@
   --color-background: #0c0c0e;
   --color-surface: #15151a;
   --color-surface-raised: #1c1c22;
+  /* camelCase alias: the codebase references `surfaceRaised` (e.g. bg-surfaceRaised).
+     Tailwind v4 maps utilities from the literal token name, so this alias makes the
+     documented "modals, popovers, menus" elevation actually resolve. */
+  --color-surfaceRaised: #1c1c22;
   --color-border: #2a2a31;
   --color-primary: #eceae6;
   --color-secondary: #9a968e;
@@ -21,4 +25,28 @@
   /* Typography from DESIGN.md */
   --font-sans: "Inter", sans-serif;
   --font-mono: "JetBrains Mono", monospace;
+
+  /* Portal surface motion (Radix popover/menu/dialog). Restrained, ~120ms. */
+  --animate-popover: popover 120ms ease-out;
+  --animate-fade: fade 120ms ease-out;
+
+  @keyframes popover {
+    from {
+      opacity: 0;
+      transform: scale(0.97);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  @keyframes fade {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
 }
