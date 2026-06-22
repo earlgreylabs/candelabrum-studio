@@ -1,4 +1,4 @@
-# ![Candelabrum Studio, a wrought-iron candelabrum lit against a swirling nebula, under an ornate wordmark](./docs/assets/candelabrum-studio.png)
+# ![Candelabrum Studio, a wrought-iron candelabrum lit against a swirling nebula, under an ornate wordmark](./docs/assets/hero.png)
 
 A local-first, single-operator digital-art engine for macOS / Apple Silicon. One
 TypeScript app orchestrates a six-stage pipeline (direct → image → animate →
