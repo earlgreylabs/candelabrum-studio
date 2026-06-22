@@ -26,9 +26,10 @@ resume from `prompt.md`.
   tooling, config and secrets, and the toolchain table that drives `AGENTS.md`.
 - [05-scope-and-phases.md](05-scope-and-phases.md): the v1 boundary, the slice
   plan that seeds `BUILD_STATE.md`, and what is deferred to later phases.
-- [06-economics-and-monetization.md](06-economics-and-monetization.md): what a
-  video costs to make, how the platforms (TikTok, Instagram, YouTube Shorts) pay,
-  the AI-content eligibility realities, and the recommended revenue strategy.
+- [06-economics-and-monetization.md](06-economics-and-monetization.md): a
+  measured cost study of what a finished video really costs (a real run sample,
+  provider/model prices, and the free local-tool savings), followed by a compact
+  look at the harder social-media earning question.
 - [07-ui-ux.md](07-ui-ux.md): the single-pane-of-glass interaction model, the
   dashboard wireframes and gate-by-gate user journey, the dark / candle-gold design
   system (the source for `DESIGN.md`), and the storage-management UX.

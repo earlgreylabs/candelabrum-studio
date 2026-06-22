@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
-import logo from "./assets/candelabrum-studio.png";
-
+import logo from "./assets/candelabrum-studio_dark.png";
+import { cn } from "./lib/cn";
 interface HeaderProps {
   /**
    * When set, the left zone shows a back link (arrow + label) instead of the brand
@@ -21,7 +21,12 @@ interface HeaderProps {
  */
 export function Header({ back, context, actions }: HeaderProps) {
   return (
-    <header className="mb-8 flex items-center justify-between gap-4 border-b border-border pb-4">
+    <header
+      className={cn(
+        "mb-6 flex items-center justify-between gap-4",
+        back ? "border-b border-border pb-4" : "",
+      )}
+    >
       <div className="flex min-w-0 items-center gap-4">
         {back ? (
           <Link
@@ -37,24 +42,11 @@ export function Header({ back, context, actions }: HeaderProps) {
             <span className="font-medium">{back.label}</span>
           </Link>
         ) : (
-          <div
-            className="group flex shrink-0 items-center gap-3 rounded outline-none"
-            aria-label="Candelabrum Studio home"
-          >
-            <img
-              src={logo}
-              alt=""
-              className="h-14 w-14 shrink-0 object-contain transition-transform"
-            />
-            <span className="flex flex-col leading-none border-l border-border ml-4">
-              <span className="text-2xl font-bold text-accent transition-colors ml-6">
-                Candelabrum
-              </span>
-              <span className="text-xl font-medium tracking-wide text-accent-hover ml-6">
-                Studio
-              </span>
-            </span>
-          </div>
+          <img
+            src={logo}
+            alt="Candelabrum Studio"
+            className="h-24 w-auto shrink-0 object-contain transition-transform group-hover:scale-105"
+          />
         )}
         {context ? (
           <div className="flex min-w-0 items-center gap-4 border-l border-border pl-4">
