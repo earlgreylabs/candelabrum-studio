@@ -92,9 +92,9 @@ tier). The exact Claude model id is pinned at implementation time, not here.
 
 ## Accounts and ownership
 
-The repo, CI, and publishing identity sit under the **`earlgreylabs`** GitHub
-account (Earl Grey Labs); the studio's platform channels (TikTok, Instagram,
-YouTube) are Candelabrum Studio's. Use `gh` / `git` against `earlgreylabs` once the
+The repo, CI, and publishing identity sit under the **`dnlbox`** GitHub
+account (dnlbox); the studio's platform channels (TikTok, Instagram,
+YouTube) are Candelabrum Studio's. Use `gh` / `git` against `dnlbox` once the
 remote is wired; platform API credentials live in `.env` like any other secret.
 
 ## Storage

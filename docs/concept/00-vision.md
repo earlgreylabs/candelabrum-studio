@@ -50,8 +50,8 @@ apps.
 
 ## Studio identity and ownership
 
-The studio is **Candelabrum Studio**, operated under **Earl Grey Labs**
-(`earlgreylabs` on GitHub: the repo, publishing identity, and platform channels
+The studio is **Candelabrum Studio**, operated under **dnlbox**
+(`dnlbox` on GitHub: the repo, publishing identity, and platform channels
 live there). Its mark is at
 [`docs/assets/candelabrum-studio.png`](../assets/candelabrum-studio.png): a
 wrought-iron candelabrum lit against a swirling nebula, under an ornate wordmark.

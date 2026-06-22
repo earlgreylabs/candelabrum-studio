@@ -67,7 +67,7 @@ resume from `prompt.md`.
   Python. See [08-tech-stack.md](08-tech-stack.md).
 - **Director LLM:** Claude by default, abstracted behind the AI SDK's provider
   layer (Gemini swappable).
-- **Identity & ownership:** operated under **Earl Grey Labs** (`earlgreylabs` on
+- **Identity & ownership:** operated under **dnlbox** (`dnlbox` on
   GitHub). The studio logo (`docs/assets/candelabrum-studio.png`) is the studio's
   outward identity only, with no connection to the video content; the operator
   dashboard stays neutral and functional.

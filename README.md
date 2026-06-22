@@ -23,6 +23,7 @@ image, B clip).
 ## Setup
 
 ```bash
+brew install ffmpeg rife-ncnn-vulkan
 bun install
 cp .env.example .env     # then set ANTHROPIC_API_KEY in .env
 ```
