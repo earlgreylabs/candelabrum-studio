@@ -28,9 +28,15 @@ bun install
 cp .env.example .env     # then set ANTHROPIC_API_KEY in .env
 ```
 
-`.env` is gitignored. Non-secret defaults, paths, output profiles, and style
-presets live in [`config/`](config/). Provider choices are made per operation in
-the dashboard and persisted with the run; `settings.toml` only seeds defaults.
+`.env` is gitignored. Provider choices are made per operation in the dashboard
+and persisted with the run.
+
+## Configuration
+
+The `config/` directory holds non-secret application defaults and aesthetic definitions:
+
+- **`config/settings.toml`**: The main configuration file. It defines storage paths, output profiles (orientations, delivery sizes, fps caps, and safe-zone insets), and default providers for each pipeline stage. These providers only seed defaults; the operator can override them per-operation in the dashboard.
+- **`config/styles/`**: This folder contains declarative style presets (e.g., `cosmic-scifi.toml`). Each file defines an aesthetic description, prompt scaffolding, and platform caption conventions. You can add a new look just by creating a new `.toml` file in this directory.
 
 ## Run (dashboard)
 
