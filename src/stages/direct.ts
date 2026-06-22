@@ -7,7 +7,10 @@
 import type { Stage } from "@/core/pipeline";
 import { selectedProvider } from "@/core/provider-selection";
 
-const CONCEPT_COUNT = 3;
+// Request a single concept and lean on prompt technique (internal divergent
+// thinking plus an explicit quality bar) rather than sampling several and
+// discarding all but the first.
+const CONCEPT_COUNT = 1;
 
 export const direct: Stage = async (run, ctx) => {
   if (run.concept) {
@@ -30,12 +33,16 @@ export const direct: Stage = async (run, ctx) => {
   if (!chosen) {
     throw new Error("director proposed no concepts");
   }
-  run.concept = chosen;
+  // The rationale is the director's chain-of-thought. Keep it in the breakdown
+  // payload (viewable via the "P" inspector) but strip it from the stored concept
+  // so it does not flow into later prompts (finalise/revise) or the concept panel.
+  const { rationale, ...concept } = chosen;
+  run.concept = concept;
   run.cost.push({
     stage: "direct",
     provider: selectedProvider(run.providerSelections, ctx.settings, "concept"),
     model: ctx.director.modelId,
     amountUsd: 0,
-    payload: proposePayload,
+    payload: { request: proposePayload, response: chosen },
   });
 };

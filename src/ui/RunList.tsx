@@ -1,6 +1,9 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import type { Run } from "@/core/run";
+import { Footer } from "./Footer";
+import { Header } from "./Header";
+import { ProviderBadges } from "./ProviderBadges";
 import { ProviderSelect } from "./ProviderSelect";
 import { useProviderCatalog } from "./provider-catalog";
 
@@ -46,18 +49,21 @@ export function RunList({ runs, status }: RunListProps) {
 
   return (
     <div className="flex min-h-screen flex-col bg-background p-8 text-primary font-sans">
-      <header className="mb-8 flex items-end justify-between border-b border-border pb-4">
-        <div>
-          <h1 className="text-3xl font-bold text-accent">Candelabrum Studio</h1>
-          <p className="text-secondary font-mono text-sm tracking-tight">v1 Dashboard</p>
-        </div>
-        <div className="text-sm font-medium">
-          <span className="text-faint mr-2">API:</span>
-          <span className={status === "connected" ? "text-status-ready" : "text-status-warning"}>
-            {status}
-          </span>
-        </div>
-      </header>
+      <Header
+        actions={
+          <>
+            <ProviderBadges />
+            <div className="border-l border-border pl-4 text-sm font-medium">
+              <span className="text-faint mr-2">API:</span>
+              <span
+                className={status === "connected" ? "text-status-ready" : "text-status-warning"}
+              >
+                {status}
+              </span>
+            </div>
+          </>
+        }
+      />
 
       <main className="flex-1">
         <div className="mb-6 flex items-center justify-between">
@@ -180,6 +186,8 @@ export function RunList({ runs, status }: RunListProps) {
           </div>
         )}
       </main>
+
+      <Footer />
     </div>
   );
 }

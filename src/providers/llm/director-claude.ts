@@ -20,9 +20,9 @@ import { modelIdOf } from "@/providers/model-id";
 
 const DIRECTOR_SYSTEM =
   "You are the creative director of a digital-art studio that produces short, " +
-  "highly varied fantasy and sci-fi video clips. Propose distinct, vivid concepts " +
+  "highly varied fantasy and sci-fi video clips. Propose a distinct, vivid concept " +
   "and write precise generation prompts. Favour forward camera travel and stable, " +
-  "non-warping structure. Keep every concept different from the recent history.";
+  "non-warping structure. Keep each new concept different from recent history.";
 
 function styleBrief(style?: Style): string {
   if (!style) {
@@ -49,10 +49,12 @@ export function createClaudeDirector(model: LanguageModel): DirectorLLM {
         {
           role: "user" as const,
           content: [
-            `Propose ${count} distinct concepts.`,
+            "Propose one concept for a new short clip: the single strongest idea you can produce.",
+            "Work like an art director. Use the rationale field to privately weigh several distinct directions (varying subject, setting, era, and mood) and note why your pick wins; then commit to that single strongest, most specific concept.",
+            "Quality bar: a concrete subject, a vivid and particular setting, and a defined mood with intentional lighting. Avoid generic tropes and stock phrasing; aim for an unexpected yet coherent angle that reads clearly under a slow forward camera push with stable, non-warping structure.",
             styleBrief(style),
             lore ? `Campaign directive: ${lore}` : "",
-            history?.length ? `Avoid repeating: ${history.join("; ")}` : "",
+            history?.length ? `Make it clearly distinct from recent concepts: ${history.join("; ")}` : "",
           ]
             .filter(Boolean)
             .join("\n\n"),
@@ -63,7 +65,9 @@ export function createClaudeDirector(model: LanguageModel): DirectorLLM {
       const { object } = await generateObject({
         model,
         allowSystemInMessages: true,
-        schema: z.object({ concepts: z.array(conceptSchema) }),
+        // Require the rationale so the model always reasons before committing to
+        // the concept fields (chain-of-thought via field order).
+        schema: z.object({ concepts: z.array(conceptSchema.required({ rationale: true })) }),
         messages,
       });
       return object.concepts.slice(0, count);

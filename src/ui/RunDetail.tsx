@@ -2,7 +2,16 @@ import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import type { ProviderCapability, ProviderSelections } from "@/core/provider-selection";
 import type { Run, RunStatus } from "@/core/run";
+import { Footer } from "./Footer";
+import { Header } from "./Header";
 import { PipelineProgress } from "./PipelineProgress";
+import {
+  Dialog,
+  DialogContent,
+  DialogEyebrow,
+  DialogHeader,
+  DialogTitle,
+} from "./primitives/dialog";
 import { ProviderSelect } from "./ProviderSelect";
 import { useProviderCatalog } from "./provider-catalog";
 
@@ -33,6 +42,7 @@ export function RunDetail() {
   const [reviseInstruction, setReviseInstruction] = useState("");
   const [editedCaption, setEditedCaption] = useState("");
   const [providerChoices, setProviderChoices] = useState<ProviderSelections>({});
+  const [payloadView, setPayloadView] = useState<{ stage: string; payload: unknown } | null>(null);
   const catalog = useProviderCatalog();
 
   const providerFor = (capability: ProviderCapability): string =>
@@ -225,27 +235,25 @@ export function RunDetail() {
 
   return (
     <div className="flex min-h-screen flex-col bg-background p-8 text-primary font-sans">
-      <header className="mb-8 flex items-center justify-between border-b border-border pb-4">
-        <div className="flex items-center gap-4">
-          <Link to="/" className="text-secondary hover:text-primary transition-colors">
-            &larr; Back
-          </Link>
-          <h1 className="text-2xl font-bold font-mono">{run.id}</h1>
-        </div>
-        <div
-          className={`rounded bg-surfaceRaised px-3 py-1 text-sm font-semibold capitalize border border-border ${
-            run.lastError
-              ? "text-status-danger"
-              : isGate
-                ? "text-status-warning"
-                : ["ready"].includes(run.status)
-                  ? "text-status-ready"
-                  : "text-status-rendering"
-          }`}
-        >
-          {run.status.replace("_", " ")}
-        </div>
-      </header>
+      <Header
+        back={{ to: "/", label: "Back" }}
+        context={<h1 className="truncate font-mono text-2xl font-bold">{run.id}</h1>}
+        actions={
+          <div
+            className={`rounded border border-border bg-surfaceRaised px-3 py-1 text-sm font-semibold capitalize ${
+              run.lastError
+                ? "text-status-danger"
+                : isGate
+                  ? "text-status-warning"
+                  : ["ready"].includes(run.status)
+                    ? "text-status-ready"
+                    : "text-status-rendering"
+            }`}
+          >
+            {run.status.replace("_", " ")}
+          </div>
+        }
+      />
 
       <PipelineProgress
         run={run}
@@ -595,9 +603,9 @@ export function RunDetail() {
                   {entry.payload && (
                     <button
                       type="button"
-                      onClick={() => alert(JSON.stringify(entry.payload, null, 2))}
+                      onClick={() => setPayloadView({ stage: entry.stage, payload: entry.payload })}
                       className="shrink-0 rounded bg-accent/10 px-1.5 py-0.5 text-[10px] font-bold text-accent hover:bg-accent/20 border border-accent/30 transition-colors"
-                      title="View Payload"
+                      title="View payload"
                     >
                       P
                     </button>
@@ -616,6 +624,27 @@ export function RunDetail() {
           </div>
         </div>
       </main>
+
+      <Footer />
+
+      <Dialog
+        open={payloadView != null}
+        onOpenChange={(open) => {
+          if (!open) setPayloadView(null);
+        }}
+      >
+        {payloadView ? (
+          <DialogContent aria-describedby={undefined} className="max-w-2xl">
+            <DialogHeader>
+              <DialogEyebrow>Provider request</DialogEyebrow>
+              <DialogTitle className="capitalize">{payloadView.stage} payload</DialogTitle>
+            </DialogHeader>
+            <pre className="mt-1 max-h-[60vh] overflow-auto whitespace-pre-wrap break-words rounded border border-border bg-background p-4 font-mono text-xs leading-relaxed text-secondary">
+              {JSON.stringify(payloadView.payload, null, 2)}
+            </pre>
+          </DialogContent>
+        ) : null}
+      </Dialog>
     </div>
   );
 }

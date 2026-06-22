@@ -66,6 +66,15 @@ export function isTerminal(status: RunStatus): boolean {
 export const runStatusSchema = z.enum(RUN_STATUSES);
 
 export const conceptSchema = z.object({
+  // Chain-of-thought planning, generated before the concept fields. Optional so
+  // concepts persisted before this field still load; the director's generation
+  // schema requires it (see createClaudeDirector.proposeConcepts).
+  rationale: z
+    .string()
+    .optional()
+    .describe(
+      "Private planning written first: the distinct directions you weighed and why this concept wins.",
+    ),
   title: z.string(),
   summary: z.string(),
   subject: z.string(),

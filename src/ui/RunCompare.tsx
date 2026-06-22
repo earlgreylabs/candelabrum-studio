@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import type { Run } from "@/core/run";
+import { Footer } from "./Footer";
+import { Header } from "./Header";
 
 export function RunCompare() {
   const { id } = useParams<{ id: string }>();
@@ -41,9 +43,14 @@ export function RunCompare() {
   if (loading) return <div className="p-8 text-primary">Loading...</div>;
   if (error || !run) return <div className="p-8 text-status-danger">{error || "Not found"}</div>;
 
-  const orientationClass =
-    run.profile.orientation === "portrait" ? "aspect-[9/16]" : "aspect-video";
-  const objectFitClass = run.profile.orientation === "portrait" ? "object-contain" : "object-cover";
+  const isPortrait = run.profile.orientation === "portrait";
+  const orientationClass = isPortrait ? "aspect-[9/16]" : "aspect-video";
+  // Always contain: object-cover crops the frame to fill the element, which clips
+  // the top/bottom of the clip when fullscreened on a non-16:9 display.
+  const objectFitClass = "object-contain";
+  // Narrow portrait clips read fine side by side; wide landscape clips become too
+  // small at 4-across, so give them a 2x2 grid for a legible comparison.
+  const gridColsClass = isPortrait ? "sm:grid-cols-2 xl:grid-cols-4" : "md:grid-cols-2";
 
   const columns = [
     {
@@ -78,58 +85,55 @@ export function RunCompare() {
 
   return (
     <div className="flex min-h-screen flex-col bg-background p-8 text-primary font-sans">
-      <header className="mb-8 flex items-center justify-between border-b border-border pb-4">
-        <div className="flex items-center gap-4">
-          <Link
-            to={`/runs/${run.id}`}
-            className="text-secondary hover:text-primary transition-colors"
-          >
-            &larr; Back to Run
-          </Link>
-          <h1 className="text-2xl font-bold font-mono">
-            {run.id}{" "}
-            <span className="text-secondary font-sans text-lg font-medium ml-2">
+      <Header
+        back={{ to: `/runs/${run.id}`, label: "Back to Run" }}
+        context={
+          <h1 className="truncate font-mono text-2xl font-bold">
+            {run.id}
+            <span className="ml-2 font-sans text-lg font-medium text-secondary">
               Pipeline Evolution
             </span>
           </h1>
-        </div>
-        <div className="flex items-center gap-4">
-          <select
-            value={playbackRate}
-            onChange={(e) => setPlaybackRate(Number(e.target.value))}
-            className="rounded bg-surfaceRaised border border-border px-3 py-2 text-sm text-primary focus:border-accent outline-none"
-          >
-            <option value={1}>1.0x Speed</option>
-            <option value={0.5}>0.5x Slow-Mo</option>
-            <option value={0.25}>0.25x Slow-Mo</option>
-            <option value={0.1}>0.1x Frame-by-Frame</option>
-          </select>
-          <button
-            type="button"
-            onClick={() => {
-              const videos = document.querySelectorAll("video");
-              if (isPlaying) {
-                videos.forEach((video) => {
-                  video.pause();
-                });
-                setIsPlaying(false);
-              } else {
-                videos.forEach((v) => {
-                  v.currentTime = 0;
-                  v.play().catch(() => {});
-                });
-                setIsPlaying(true);
-              }
-            }}
-            className="rounded bg-accent px-4 py-2 text-sm font-semibold text-white hover:bg-accent/90 transition-colors shadow-sm w-40"
-          >
-            {isPlaying ? "⏸ Pause All" : "▶ Sync & Play All"}
-          </button>
-        </div>
-      </header>
+        }
+        actions={
+          <>
+            <select
+              value={playbackRate}
+              onChange={(e) => setPlaybackRate(Number(e.target.value))}
+              className="rounded bg-surfaceRaised border border-border px-3 py-2 text-sm text-primary focus:border-accent outline-none"
+            >
+              <option value={1}>1.0x Speed</option>
+              <option value={0.5}>0.5x Slow-Mo</option>
+              <option value={0.25}>0.25x Slow-Mo</option>
+              <option value={0.1}>0.1x Frame-by-Frame</option>
+            </select>
+            <button
+              type="button"
+              onClick={() => {
+                const videos = document.querySelectorAll("video");
+                if (isPlaying) {
+                  videos.forEach((video) => {
+                    video.pause();
+                  });
+                  setIsPlaying(false);
+                } else {
+                  videos.forEach((v) => {
+                    v.currentTime = 0;
+                    v.play().catch(() => {});
+                  });
+                  setIsPlaying(true);
+                }
+              }}
+              className="rounded bg-accent px-4 py-2 text-sm font-semibold text-white hover:bg-accent/90 transition-colors shadow-sm w-40"
+            >
+              {isPlaying ? "⏸ Pause All" : "▶ Sync & Play All"}
+            </button>
+          </>
+        }
+      />
 
       <main className="flex-1">
-        <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4 h-full">
+        <div className={`grid gap-6 ${gridColsClass}`}>
           {columns.map((col) => (
             <div
               key={col.title}
@@ -163,6 +167,8 @@ export function RunCompare() {
           ))}
         </div>
       </main>
+
+      <Footer />
     </div>
   );
 }

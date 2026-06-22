@@ -23,6 +23,8 @@ export interface PipelineStepDefinition {
   input: string;
   output: string;
   cost: string;
+  /** Optional caveat surfaced in the stage detail dialog (e.g. external paid tooling). */
+  disclaimer?: string;
 }
 
 export const PIPELINE_STEPS: readonly PipelineStepDefinition[] = [
@@ -75,6 +77,8 @@ export const PIPELINE_STEPS: readonly PipelineStepDefinition[] = [
     input: "Approved base image.",
     output: "An enhanced image or an explicit pass-through.",
     cost: "Currently uses local tooling and does not submit a cloud model request.",
+    disclaimer:
+      "Upscaling runs through Topaz Photo AI, a paid third-party desktop app that must be installed locally on the studio machine. When it is not available, the base image passes through unchanged so the run still completes at no cost.",
   },
   {
     id: "animate",

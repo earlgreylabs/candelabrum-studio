@@ -1,4 +1,4 @@
-import { AlertTriangle, Check } from "lucide-react";
+import { AlertTriangle, Check, Info } from "lucide-react";
 import { Fragment, useState } from "react";
 import {
   currentPipelineStepIndex,
@@ -65,6 +65,9 @@ export function PipelineProgress({
 }: PipelineProgressProps) {
   const [selectedId, setSelectedId] = useState<PipelineStepId | null>(null);
   const currentIndex = currentPipelineStepIndex(run);
+  // A finished run shares the "ready" status with the Export step, so without this
+  // every step (including Export) reads as complete instead of one being "current".
+  const runComplete = run.status === "ready";
 
   const selected = PIPELINE_STEPS.find((step) => step.id === selectedId);
   const selectedCapability = selected ? STEP_CAPABILITY[selected.id] : undefined;
@@ -85,8 +88,9 @@ export function PipelineProgress({
       <TooltipProvider delayDuration={250}>
         <ol className="flex items-start overflow-x-auto pb-1">
           {PIPELINE_STEPS.map((step, index) => {
-            const state: StepState =
-              index === currentIndex && run.lastError
+            const state: StepState = runComplete
+              ? "complete"
+              : index === currentIndex && run.lastError
                 ? "error"
                 : index < currentIndex
                   ? "complete"
@@ -187,6 +191,13 @@ export function PipelineProgress({
                 <dd className="mt-1 text-primary">{selected.cost}</dd>
               </div>
             </dl>
+
+            {selected.disclaimer ? (
+              <p className="mt-4 flex gap-2 rounded border border-border bg-surface p-3 text-xs leading-relaxed text-secondary">
+                <Info aria-hidden="true" size={15} className="mt-px shrink-0 text-faint" />
+                <span>{selected.disclaimer}</span>
+              </p>
+            ) : null}
 
             {selectedShowsError && run.lastError ? (
               <p className="mt-4 rounded border border-status-danger/50 bg-status-danger/10 p-2 text-sm text-status-danger">

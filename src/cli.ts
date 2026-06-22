@@ -6,7 +6,7 @@ import { loadSettings, loadStyle, type Settings, type Style } from "@/core/confi
 import { ORIENTATIONS, type Orientation } from "@/core/constants";
 import { advance, approve, regenerate, reject, revise } from "@/core/orchestrator";
 import type { PipelineContext } from "@/core/pipeline";
-import { type ProviderCapability, selectedProvider } from "@/core/provider-selection";
+import { type DirectorCapability, type ProviderCapability, selectedProvider } from "@/core/provider-selection";
 import { authorizeProvider, createRun, type Run } from "@/core/run";
 import { RunStore } from "@/core/store";
 import { providerOption } from "@/providers/catalog";
@@ -35,7 +35,7 @@ function parseOrientation(value: string | undefined): Orientation {
   throw new Error(`invalid orientation: ${value} (expected ${ORIENTATIONS.join(" | ")})`);
 }
 
-function directorCapabilityFor(run: Run): ProviderCapability {
+function directorCapabilityFor(run: Run): DirectorCapability {
   if (run.status === "directing") return "concept";
   if (run.status === "captioning" || run.status === "gate_b") return "caption";
   return "finalise";
@@ -46,9 +46,9 @@ function buildContext(
   store: RunStore,
   run: Run,
   style?: Style,
-  capability = directorCapabilityFor(run),
+  directorCapability: DirectorCapability = directorCapabilityFor(run),
 ): PipelineContext {
-  const directorId = selectedProvider(run.providerSelections, settings, capability);
+  const directorId = selectedProvider(run.providerSelections, settings, directorCapability);
   return {
     settings,
     store,
@@ -156,7 +156,7 @@ async function main(): Promise<void> {
   const run = await store.load(id);
   const style = await loadRunStyle(run);
   if (command === "approve") {
-    let capability: ProviderCapability | undefined;
+    let capability: DirectorCapability | undefined;
     if (run.status === "gate_a") {
       await authorize(run, store, [
         { capability: "finalise", provider: values["finalise-provider"] },
@@ -191,7 +191,7 @@ async function main(): Promise<void> {
     };
     const capability = capabilityByStatus[run.status];
     if (capability) await authorize(run, store, [{ capability, provider: values.provider }]);
-    await advance(run, buildContext(settings, store, run, style, capability));
+    await advance(run, buildContext(settings, store, run, style));
   } else {
     console.log(USAGE);
     process.exitCode = 1;

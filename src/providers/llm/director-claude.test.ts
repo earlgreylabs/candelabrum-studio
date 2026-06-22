@@ -20,7 +20,14 @@ describe("ClaudeDirector adapter", () => {
   test("proposeConcepts parses the model's concepts", async () => {
     const model = new MockLanguageModelV3({
       doGenerate: respondWith({
-        concepts: [{ title: "Drift", summary: "a lone vessel", subject: "lone vessel" }],
+        concepts: [
+          {
+            rationale: "Weighed a few directions; a lone vessel reads cleanest under a forward push.",
+            title: "Drift",
+            summary: "a lone vessel",
+            subject: "lone vessel",
+          },
+        ],
       }),
     });
     const director = createClaudeDirector(model);

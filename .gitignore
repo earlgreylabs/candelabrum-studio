@@ -16,3 +16,7 @@ ready/
 
 # os
 .DS_Store
+
+# working directories
+.claude
+.mypy_cache
