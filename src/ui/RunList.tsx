@@ -53,14 +53,6 @@ export function RunList({ runs, status }: RunListProps) {
         actions={
           <>
             <ProviderBadges />
-            <div className="border-l border-border pl-4 text-sm font-medium">
-              <span className="text-faint mr-2">API:</span>
-              <span
-                className={status === "connected" ? "text-status-ready" : "text-status-warning"}
-              >
-                {status}
-              </span>
-            </div>
           </>
         }
       />

@@ -37,23 +37,24 @@ export function Header({ back, context, actions }: HeaderProps) {
             <span className="font-medium">{back.label}</span>
           </Link>
         ) : (
-          <Link
-            to="/"
-            className="group flex shrink-0 items-center gap-3 rounded outline-none focus-visible:ring-2 focus-visible:ring-accent"
+          <div
+            className="group flex shrink-0 items-center gap-3 rounded outline-none"
             aria-label="Candelabrum Studio home"
           >
             <img
               src={logo}
               alt=""
-              className="h-14 w-14 shrink-0 object-contain transition-transform group-hover:scale-105"
+              className="h-14 w-14 shrink-0 object-contain transition-transform"
             />
-            <span className="flex flex-col leading-none">
-              <span className="text-2xl font-bold text-accent transition-colors group-hover:text-accent-hover">
+            <span className="flex flex-col leading-none border-l border-border ml-4">
+              <span className="text-2xl font-bold text-accent transition-colors ml-6">
                 Candelabrum
               </span>
-              <span className="text-xl font-medium tracking-wide text-accent-hover">Studio</span>
+              <span className="text-xl font-medium tracking-wide text-accent-hover ml-6">
+                Studio
+              </span>
             </span>
-          </Link>
+          </div>
         )}
         {context ? (
           <div className="flex min-w-0 items-center gap-4 border-l border-border pl-4">
@@ -61,7 +62,9 @@ export function Header({ back, context, actions }: HeaderProps) {
           </div>
         ) : null}
       </div>
-      {actions ? <div className="flex shrink-0 items-center gap-4">{actions}</div> : null}
+      {actions ? (
+        <div className="flex shrink-0 items-center gap-4">{actions}</div>
+      ) : null}
     </header>
   );
 }

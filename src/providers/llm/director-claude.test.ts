@@ -22,7 +22,8 @@ describe("ClaudeDirector adapter", () => {
       doGenerate: respondWith({
         concepts: [
           {
-            rationale: "Weighed a few directions; a lone vessel reads cleanest under a forward push.",
+            rationale:
+              "Weighed a few directions; a lone vessel reads cleanest under a forward push.",
             title: "Drift",
             summary: "a lone vessel",
             subject: "lone vessel",

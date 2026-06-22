@@ -6,7 +6,11 @@ import { loadSettings, loadStyle, type Settings, type Style } from "@/core/confi
 import { ORIENTATIONS, type Orientation } from "@/core/constants";
 import { advance, approve, regenerate, reject, revise } from "@/core/orchestrator";
 import type { PipelineContext } from "@/core/pipeline";
-import { type DirectorCapability, type ProviderCapability, selectedProvider } from "@/core/provider-selection";
+import {
+  type DirectorCapability,
+  type ProviderCapability,
+  selectedProvider,
+} from "@/core/provider-selection";
 import { authorizeProvider, createRun, type Run } from "@/core/run";
 import { RunStore } from "@/core/store";
 import { providerOption } from "@/providers/catalog";

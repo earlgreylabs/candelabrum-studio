@@ -54,7 +54,9 @@ export function createClaudeDirector(model: LanguageModel): DirectorLLM {
             "Quality bar: a concrete subject, a vivid and particular setting, and a defined mood with intentional lighting. Avoid generic tropes and stock phrasing; aim for an unexpected yet coherent angle that reads clearly under a slow forward camera push with stable, non-warping structure.",
             styleBrief(style),
             lore ? `Campaign directive: ${lore}` : "",
-            history?.length ? `Make it clearly distinct from recent concepts: ${history.join("; ")}` : "",
+            history?.length
+              ? `Make it clearly distinct from recent concepts: ${history.join("; ")}`
+              : "",
           ]
             .filter(Boolean)
             .join("\n\n"),
