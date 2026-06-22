@@ -155,20 +155,28 @@ export async function revise(run: Run, ctx: PipelineContext, instruction: string
  * potentially blocking stage runs; the caller drives `advance` separately.
  */
 export async function prepRegenerate(run: Run, ctx: PipelineContext): Promise<Run> {
-  if (run.status === "gate_a5") {
-    // Re-roll image
-    run.artifacts.image = undefined;
-    run.artifacts.upscaledImage = undefined;
-    transition(run, "imaging", "operator", "regenerate image");
-  } else if (run.status === "gate_b") {
-    // Re-roll video
-    run.artifacts.rawClip = undefined;
-    run.artifacts.masterClip = undefined;
-    run.artifacts.masterProxyClip = undefined;
-    run.artifacts.masterMode = undefined;
-    run.artifacts.masterNote = undefined;
-    run.artifacts.providerJobId = undefined;
-    transition(run, "animating", "operator", "regenerate video");
+  const statusHandlers: { [key: string]: () => void } = {
+    "gate_a5": () => {
+      // Re-roll image
+      run.artifacts.image = undefined;
+      run.artifacts.upscaledImage = undefined;
+      transition(run, "imaging", "operator", "regenerate image");
+    },
+    "gate_b": () => {
+      // Re-roll video
+      run.artifacts.rawClip = undefined;
+      run.artifacts.masterClip = undefined;
+      run.artifacts.masterProxyClip = undefined;
+      run.artifacts.masterMode = undefined;
+      run.artifacts.masterNote = undefined;
+      run.artifacts.providerJobId = undefined;
+      transition(run, "animating", "operator", "regenerate video");
+    },
+  };
+
+  const handler = statusHandlers[run.status];
+  if (handler) {
+    handler();
   } else {
     throw new Error(`regenerate is only valid at gate_a5 or gate_b, but run is at ${run.status}`);
   }
