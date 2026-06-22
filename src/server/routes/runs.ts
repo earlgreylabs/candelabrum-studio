@@ -7,7 +7,7 @@ import {
   reject as rejectRun,
   revise as reviseRun,
 } from "@/core/orchestrator";
-import type { ProviderCapability } from "@/core/provider-selection";
+import type { DirectorCapability, ProviderCapability } from "@/core/provider-selection";
 import { authorizeProvider, createRun } from "@/core/run";
 import { providerOption } from "@/providers/catalog";
 import type { ServerDependencies } from "@/server/contracts";
@@ -98,7 +98,7 @@ export function registerRunRoutes(app: Hono, dependencies: ServerDependencies): 
       const store = dependencies.createStore(settings);
       const updated = await dependencies.executor.mutate(id, async () => {
         const run = await store.load(id);
-        let directorCapability: ProviderCapability | undefined;
+        let directorCapability: DirectorCapability | undefined;
         if (run.status === "gate_a") {
           await authorize(run, store, [
             { capability: "finalise", provider: input.finaliseProvider },
@@ -197,7 +197,9 @@ export function registerRunRoutes(app: Hono, dependencies: ServerDependencies): 
       };
       const capability = capabilityByStatus[run.status];
       if (capability) await authorize(run, store, [{ capability, provider: input.provider }]);
-      const context = await dependencies.buildContext(settings, store, run, capability);
+      const directorCapability =
+        capability === "concept" || capability === "caption" ? capability : undefined;
+      const context = await dependencies.buildContext(settings, store, run, directorCapability);
       const { started } = dependencies.executor.start(run, context);
       return c.json({ run, started }, 202);
     } catch (error) {

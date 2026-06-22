@@ -40,10 +40,7 @@ export function DialogHeader({ className, ...props }: ComponentProps<"div">) {
   return <div className={cn("mb-4 flex flex-col gap-1 pr-8", className)} {...props} />;
 }
 
-export function DialogTitle({
-  className,
-  ...props
-}: ComponentProps<typeof DialogPrimitive.Title>) {
+export function DialogTitle({ className, ...props }: ComponentProps<typeof DialogPrimitive.Title>) {
   return (
     <DialogPrimitive.Title
       className={cn("text-base font-semibold text-primary", className)}
@@ -57,10 +54,7 @@ export function DialogDescription({
   ...props
 }: ComponentProps<typeof DialogPrimitive.Description>) {
   return (
-    <DialogPrimitive.Description
-      className={cn("text-sm text-secondary", className)}
-      {...props}
-    />
+    <DialogPrimitive.Description className={cn("text-sm text-secondary", className)} {...props} />
   );
 }
 
@@ -68,10 +62,7 @@ export function DialogDescription({
 export function DialogEyebrow({ className, ...props }: ComponentProps<"p">) {
   return (
     <p
-      className={cn(
-        "text-xs font-semibold uppercase tracking-wide text-accent",
-        className,
-      )}
+      className={cn("text-xs font-semibold uppercase tracking-wide text-accent", className)}
       {...props}
     />
   );

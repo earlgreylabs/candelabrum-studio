@@ -10,6 +10,7 @@ import {
   veoVideoModelId,
   waveSpeedVideoModelId,
 } from "@/providers/model-config";
+import { FAL_VIDEO_MODELS } from "@/providers/video/fal";
 
 export type ProviderMode = "automated" | "manual" | "local";
 
@@ -99,6 +100,15 @@ export function listProviderOptions(): ProviderOption[] {
       available: true,
       estimatedCostUsd: 0,
     },
+    ...Object.entries(FAL_VIDEO_MODELS).map(([model, config]) => ({
+      id: `fal-${model}`,
+      capability: "video" as const,
+      label: config.label,
+      model: config.endpoint,
+      mode: "automated" as const,
+      estimatedCostUsd: config.estimatedCostUsd,
+      ...credential("FAL_KEY"),
+    })),
     {
       id: "veo",
       capability: "video",

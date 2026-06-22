@@ -2,6 +2,7 @@ import type { Settings } from "@/core/config";
 import { ProviderRegistry } from "@/core/factory";
 import type { VideoProvider } from "@/core/providers";
 import { veoVideoModelId, waveSpeedVideoModelId } from "@/providers/model-config";
+import { type FalVideoModel, FalVideoProvider } from "@/providers/video/fal";
 import { ManualInboxVideoProvider } from "@/providers/video/manual-inbox";
 import { VeoVideoProvider } from "@/providers/video/veo";
 import { WaveSpeedVideoProvider } from "@/providers/video/wavespeed";
@@ -9,6 +10,16 @@ import { WaveSpeedVideoProvider } from "@/providers/video/wavespeed";
 export const videoRegistry = new ProviderRegistry<VideoProvider>("video");
 
 videoRegistry.register("manual", () => new ManualInboxVideoProvider());
+
+for (const model of ["cosmos", "seedance", "kling"] as const satisfies FalVideoModel[]) {
+  videoRegistry.register(`fal-${model}`, () => {
+    const apiKey = process.env.FAL_KEY;
+    if (!apiKey) {
+      throw new Error("FAL_KEY is required for fal.ai video providers");
+    }
+    return new FalVideoProvider(model, apiKey);
+  });
+}
 
 videoRegistry.register("veo", () => {
   // Veo 3.1 by default; override via VIDEO_MODEL. Must support image-to-video (the

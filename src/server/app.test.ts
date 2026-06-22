@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { loadSettings, type Settings } from "@/core/config";
 import { RunExecutor } from "@/core/executor";
 import type { PipelineContext } from "@/core/pipeline";
+import type { DirectorCapability } from "@/core/provider-selection";
 import type { DirectorLLM, Exporter, ImageProvider, VideoProvider } from "@/core/providers";
 import { createRun, type Run, transition } from "@/core/run";
 import { RunStore } from "@/core/store";
@@ -58,6 +59,7 @@ describe("HTTP app", () => {
   let store: RunStore;
   let dependencies: ServerDependencies;
   let app: ReturnType<typeof createApp>;
+  let buildDirectorCapabilities: Array<DirectorCapability | undefined>;
 
   beforeEach(async () => {
     root = await mkdtemp(join(tmpdir(), "cs-server-"));
@@ -71,20 +73,29 @@ describe("HTTP app", () => {
       },
     };
     store = new RunStore(settings.paths.runs);
+    buildDirectorCapabilities = [];
     dependencies = {
       executor: new RunExecutor(),
       loadSettings: async () => settings,
       createStore: () => store,
-      buildContext: async (): Promise<PipelineContext> => ({
-        settings,
-        store,
-        director,
-        image: unusedImage,
-        video: unusedVideo,
-        export: unusedExport,
-        log: () => {},
-        notify: () => {},
-      }),
+      buildContext: async (
+        _settings,
+        _store,
+        _run,
+        directorCapability,
+      ): Promise<PipelineContext> => {
+        buildDirectorCapabilities.push(directorCapability);
+        return {
+          settings,
+          store,
+          director,
+          image: unusedImage,
+          video: unusedVideo,
+          export: unusedExport,
+          log: () => {},
+          notify: () => {},
+        };
+      },
       sleep: Bun.sleep,
       logError: () => {},
     };
@@ -212,6 +223,44 @@ describe("HTTP app", () => {
     expect(
       (await store.load(run.id)).events.some((event) => event.type === "provider_authorized"),
     ).toBe(false);
+  });
+
+  test("resumes animation with fal-kling without routing it through the director", async () => {
+    const previousKey = process.env.FAL_KEY;
+    process.env.FAL_KEY = "test-key";
+    try {
+      const run = createRun(settings, { orientation: "portrait" });
+      run.status = "animating";
+      run.shotSpec = {
+        imagePrompt: "image",
+        motionPrompt: "motion",
+        captionDraft: "caption",
+        style: "none",
+        orientation: "portrait",
+      };
+      run.artifacts.image = join(root, "image.png");
+      run.lastError = {
+        at: new Date().toISOString(),
+        status: "animating",
+        message: "Veo failed",
+        attempt: 1,
+        retryable: true,
+      };
+      await store.save(run);
+
+      const response = await app.request(`/api/runs/${run.id}/resume`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ provider: "fal-kling" }),
+      });
+
+      expect(response.status).toBe(202);
+      expect(buildDirectorCapabilities).toEqual([undefined]);
+      expect((await store.load(run.id)).providerSelections.video).toBe("fal-kling");
+    } finally {
+      if (previousKey === undefined) delete process.env.FAL_KEY;
+      else process.env.FAL_KEY = previousKey;
+    }
   });
 
   test("authorizes caption passthrough atomically at Gate B", async () => {

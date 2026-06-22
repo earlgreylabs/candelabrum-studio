@@ -11,6 +11,9 @@ export const PROVIDER_CAPABILITIES = [
 ] as const;
 export type ProviderCapability = (typeof PROVIDER_CAPABILITIES)[number];
 
+export const DIRECTOR_CAPABILITIES = ["concept", "revision", "finalise", "caption"] as const;
+export type DirectorCapability = (typeof DIRECTOR_CAPABILITIES)[number];
+
 export const providerSelectionsSchema = z.object({
   concept: z.string().min(1).optional(),
   revision: z.string().min(1).optional(),

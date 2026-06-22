@@ -2,7 +2,7 @@ import { resolve } from "node:path";
 import { loadSettings, loadStyle, type Settings } from "@/core/config";
 import { RunExecutor } from "@/core/executor";
 import type { PipelineContext } from "@/core/pipeline";
-import { type ProviderCapability, selectedProvider } from "@/core/provider-selection";
+import { type DirectorCapability, selectedProvider } from "@/core/provider-selection";
 import { isGate, isTerminal, type Run, recordRunFailure } from "@/core/run";
 import { RunStore } from "@/core/store";
 import { resolveDirector } from "@/providers/director";
@@ -17,7 +17,7 @@ async function buildContext(
   settings: Settings,
   store: RunStore,
   run: Run,
-  directorCapability: ProviderCapability = run.status === "directing" ? "concept" : "finalise",
+  directorCapability: DirectorCapability = run.status === "directing" ? "concept" : "finalise",
 ): Promise<PipelineContext> {
   const selectedDirector = selectedProvider(run.providerSelections, settings, directorCapability);
   return {

@@ -23,13 +23,9 @@ export function ProviderSelect({
   const selected = matching.find((option) => option.id === value);
 
   return (
-    <label className="block space-y-1 text-sm">
+    <div className="block space-y-1 text-sm">
       <span className="text-secondary">{label}</span>
-      <Select
-        value={value}
-        disabled={disabled || matching.length === 0}
-        onValueChange={onChange}
-      >
+      <Select value={value} disabled={disabled || matching.length === 0} onValueChange={onChange}>
         <SelectTrigger aria-label={label}>
           <SelectValue placeholder="Select a provider" />
         </SelectTrigger>
@@ -62,6 +58,6 @@ export function ProviderSelect({
           {selected.unavailableReason ? `, ${selected.unavailableReason}` : ""}
         </span>
       ) : null}
-    </label>
+    </div>
   );
 }

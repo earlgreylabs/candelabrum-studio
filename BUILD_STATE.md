@@ -16,11 +16,10 @@ Rules:
 
 ## Now
 
-- Milestone: per-operation provider authorization, server modularization, and pipeline progress UX complete.
-- Last verified checkpoint: format, Biome, strict TypeScript, 53 tests, and production build green. The running dashboard was exercised at New Run, Gate A, and Gate B without submitting a paid action.
-- Provider result: capability-filtered concept, revision, finalise, image, video, caption, regenerate, and retry choices persist on the run before invocation. `settings.toml` supplies defaults only. Uncertain paid work never auto-resubmits after restart; local/manual work and persisted remote jobs can resume.
-- Structure/UI result: Hono bootstrap, runtime, routes, and HTTP helpers are separated behind injectable dependencies with temporary-storage tests. Run Detail has a ten-step accessible progress tracker and explanatory provider/cost panels.
-- Next step: complete the remaining export contract: per-run optional LUT/watermark, profile-aware delivery encode, and FCPXML handoff. Then reconcile the working Topaz stage with the optional upscale adapter decision.
+- Milestone: fal.ai animation provider and failed-run provider switching complete.
+- Last verified checkpoint: format, Biome, strict TypeScript, 60 tests, and production build green. Failed Veo run `20260621-172136-d217` resumed through Kling Turbo, wrote its raw MP4, and advanced to interpolation.
+- Recovery result: image/video capabilities can no longer route through the director registry, and changing video providers clears an incompatible persisted remote job ID before the newly authorized submission.
+- Next step: complete the remaining export contract, then reconcile the working Topaz stage with the optional upscale adapter decision.
 - Blockers: none.
 
 ## Backlog
@@ -41,6 +40,7 @@ Rules:
 - 2026-06-21: a retryable stage failure keeps its current `status`; structured error metadata explains the pause, and retry resumes from that same status. `failed` remains for legacy/unrecoverable runs only.
 - 2026-06-21: one in-process execution per run; repeated HTTP actions join or reject the active execution instead of starting duplicate provider work.
 - 2026-06-21: missing local enhancement tools may degrade explicitly, but an installed tool failing is an actionable stage failure, never silent success.
+- 2026-06-22: expose fal video models as distinct provider selections so the persisted authorization identifies the exact endpoint used for paid generation.
 
 ## Session log
 
@@ -48,6 +48,8 @@ Rules:
 
 - 2026-06-21: resilience hardening complete and verified - atomic state saves, deduplicated execution/mutations, resumable errors, idempotent stages, explicit media degradation, final export metadata, and 39 green tests.
 - 2026-06-22: per-operation provider authorization, safe paid-stage recovery, modular server, and pipeline progress UX complete and verified with 53 green tests plus live dashboard checks.
+- 2026-06-22: fal.ai Cosmos, Seedance, and Kling Turbo animation options complete and fixture-verified with 58 green tests plus production build.
+- 2026-06-22: failed Veo-to-Kling resume routing fixed and real run `20260621-172136-d217` advanced to interpolation; 60 tests and build green.
 
 ## Archive
 

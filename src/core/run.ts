@@ -190,6 +190,10 @@ export function authorizeProvider(
   capability: ProviderCapability,
   provider: string,
 ): void {
+  const previousProvider = run.providerSelections[capability];
+  if (capability === "video" && previousProvider && previousProvider !== provider) {
+    run.artifacts.providerJobId = undefined;
+  }
   const selections: ProviderSelections = { ...run.providerSelections, [capability]: provider };
   run.providerSelections = selections;
   run.events.push({

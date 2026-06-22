@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { loadSettings } from "@/core/config";
-import { createRun, isGate, isTerminal, NEXT_STATUS } from "@/core/run";
+import { authorizeProvider, createRun, isGate, isTerminal, NEXT_STATUS } from "@/core/run";
 
 describe("run model", () => {
   test("gate and terminal predicates", () => {
@@ -25,5 +25,17 @@ describe("run model", () => {
     expect(run.profile.orientation).toBe("landscape");
     expect(run.profile.aspect).toBe("16:9");
     expect(run.events[0]?.type).toBe("create");
+  });
+
+  test("switching video providers does not reuse another provider's remote job", async () => {
+    const settings = await loadSettings("./config");
+    const run = createRun(settings, { orientation: "portrait" });
+    run.providerSelections.video = "veo";
+    run.artifacts.providerJobId = "operations/veo-job";
+
+    authorizeProvider(run, "video", "fal-kling");
+
+    expect(run.providerSelections.video).toBe("fal-kling");
+    expect(run.artifacts.providerJobId).toBeUndefined();
   });
 });

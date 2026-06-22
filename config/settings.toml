@@ -14,7 +14,7 @@ ready = "./ready"
 # ManualInbox fallback wherever only a free web tier exists.
 director = "claude"
 image = "wavespeed" # Nano Banana (Gemini) image gen. Alternatives: "fal" (FLUX), "manual" (drop a file), "wavespeed".
-video = "wavespeed" # Google Veo (image-to-video). Alternative: "manual" (drop a clip), "wavespeed". Expensive per clip.
+video = "wavespeed" # Alternatives: "fal-cosmos", "fal-seedance", "fal-kling", "veo", "manual", "wavespeed". Paid models require explicit approval per clip.
 
 [targets]
 # masterFps is the archival interpolation target; the RIFE multiplier is derived
