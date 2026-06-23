@@ -24,12 +24,13 @@ image, B clip).
 
 ```bash
 brew install ffmpeg rife-ncnn-vulkan
+
 bun install
-cp .env.example .env     # then set ANTHROPIC_API_KEY in .env
+
+cp .env.example .env     # then set <PROVIDER>_API_KEY in .env
 ```
 
-`.env` is gitignored. Provider choices are made per operation in the dashboard
-and persisted with the run.
+Provider choices are made per operation in the dashboard and persisted with the run.
 
 ## Configuration
 
@@ -40,10 +41,7 @@ The `config/` directory holds non-secret application defaults and aesthetic defi
 
 ## Run (dashboard)
 
-The dashboard is the product surface: it lists runs, streams stage progress over
-SSE, shows an explanatory pipeline progress stepper, and presents the three human
-gates as approve / reject / revise / regenerate actions. Every model-backed action
-shows its capable providers, resolved model, availability, and estimated cost.
+The dashboard is the product surface: it lists runs, streams stage progress over SSE, shows an explanatory pipeline progress stepper, and presents the three human gates as approve / reject / revise / regenerate actions. Every model-backed action shows its capable providers, resolved model, availability, and estimated cost.
 
 ```bash
 bun run dev            # Hono API on :3000, Vite dashboard on :5173 (proxies /api)
