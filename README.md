@@ -90,11 +90,7 @@ is wired up. By stage:
   `metadata.json` into the `ready/` package (encodes with `ffmpeg` when present,
   else copies the master through).
 
-The remaining v1 milestone is a full end-to-end render against reality; see
-[`BUILD_STATE.md`](BUILD_STATE.md). Auto-publishing (stage 7) is phase 2.
-
-Generated output is gitignored: `runs/` (per-run state + artifacts),
-`renders/{raw,master}/` (working video + masters), `ready/` (export packages).
+Generated output is gitignored: `runs/` (per-run state + artifacts), `renders/{raw,master}/` (working video + masters), `ready/` (export packages).
 
 ## Develop
 
