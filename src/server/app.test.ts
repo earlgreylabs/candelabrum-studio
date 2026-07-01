@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { loadSettings, type Settings } from "@/core/config";
@@ -302,6 +302,29 @@ describe("HTTP app", () => {
 
     const blocked = await app.request(`/api/runs/${run.id}/asset/metadata`);
     expect(blocked.status).toBe(404);
+  });
+
+  test("rebases moved project artifact paths onto the configured storage roots", async () => {
+    const oldRoot = "/previous-checkout/candelabrum-studio";
+    const run = createRun(settings, { orientation: "portrait" });
+    const imagePath = join(settings.paths.runs, run.id, "image.base.jpg");
+    const rawClipPath = join(settings.paths.renders, "raw", `${run.id}.mp4`);
+    await mkdir(join(settings.paths.runs, run.id), { recursive: true });
+    await mkdir(join(settings.paths.renders, "raw"), { recursive: true });
+    await Bun.write(imagePath, "moved image fixture");
+    await Bun.write(rawClipPath, "moved video fixture");
+
+    run.artifacts.image = `${oldRoot}/runs/${run.id}/image.base.jpg`;
+    run.artifacts.rawClip = `${oldRoot}/renders/raw/${run.id}.mp4`;
+    await store.save(run);
+
+    const image = await app.request(`/api/runs/${run.id}/asset/image`);
+    expect(image.status).toBe(200);
+    expect(await image.text()).toBe("moved image fixture");
+
+    const rawClip = await app.request(`/api/runs/${run.id}/asset/rawClip`);
+    expect(rawClip.status).toBe(200);
+    expect(await rawClip.text()).toBe("moved video fixture");
   });
 
   test("events resolves to SSE before the dynamic run route", async () => {

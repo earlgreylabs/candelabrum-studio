@@ -16,10 +16,10 @@ Rules:
 
 ## Now
 
-- Milestone: fal.ai animation provider and failed-run provider switching complete.
-- Last verified checkpoint: format, Biome, strict TypeScript, 60 tests, and production build green. Failed Veo run `20260621-172136-d217` resumed through Kling Turbo, wrote its raw MP4, and advanced to interpolation.
-- Recovery result: image/video capabilities can no longer route through the director registry, and changing video providers clears an incompatible persisted remote job ID before the newly authorized submission.
-- Next step: complete the remaining export contract, then reconcile the working Topaz stage with the optional upscale adapter decision.
+- Milestone: local media path relocation fix complete, pending commit approval.
+- Last verified checkpoint: format, Biome, strict TypeScript, 61 tests, and real route smoke for run `20260622-152902-74dd` asset kinds `image`, `rawClip`, `masterClip`, and `exportVideo` all passed.
+- Result: dashboard asset serving now falls back from stale absolute artifact paths to the current configured `runs`, `renders`, and `ready` roots when the recorded path no longer exists.
+- Next step: restart the dashboard if it is already running, then continue export contract work.
 - Blockers: none.
 
 ## Backlog
@@ -46,6 +46,7 @@ Rules:
 
 <!-- one terse line per finished slice: "YYYY-MM-DD: slice N done + verified" -->
 
+- 2026-07-01: moved-repo local asset fallback complete and verified with 61 green tests plus real route smoke for `20260622-152902-74dd`.
 - 2026-06-21: resilience hardening complete and verified - atomic state saves, deduplicated execution/mutations, resumable errors, idempotent stages, explicit media degradation, final export metadata, and 39 green tests.
 - 2026-06-22: per-operation provider authorization, safe paid-stage recovery, modular server, and pipeline progress UX complete and verified with 53 green tests plus live dashboard checks.
 - 2026-06-22: fal.ai Cosmos, Seedance, and Kling Turbo animation options complete and fixture-verified with 58 green tests plus production build.
