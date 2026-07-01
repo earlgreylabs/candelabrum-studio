@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
 import logo from "./assets/candelabrum-studio_dark.png";
 import { cn } from "./lib/cn";
+
 interface HeaderProps {
   /**
    * When set, the left zone shows a back link (arrow + label) instead of the brand
@@ -54,9 +55,7 @@ export function Header({ back, context, actions }: HeaderProps) {
           </div>
         ) : null}
       </div>
-      {actions ? (
-        <div className="flex shrink-0 items-center gap-4">{actions}</div>
-      ) : null}
+      {actions ? <div className="flex shrink-0 items-center gap-4">{actions}</div> : null}
     </header>
   );
 }

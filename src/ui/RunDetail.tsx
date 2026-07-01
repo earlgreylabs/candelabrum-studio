@@ -5,6 +5,7 @@ import type { Run, RunStatus } from "@/core/run";
 import { Footer } from "./Footer";
 import { Header } from "./Header";
 import { PipelineProgress } from "./PipelineProgress";
+import { ProviderSelect } from "./ProviderSelect";
 import {
   Dialog,
   DialogContent,
@@ -12,7 +13,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "./primitives/dialog";
-import { ProviderSelect } from "./ProviderSelect";
 import { useProviderCatalog } from "./provider-catalog";
 
 // Manual (ManualInbox) stages pause the run until the operator drops a file into
