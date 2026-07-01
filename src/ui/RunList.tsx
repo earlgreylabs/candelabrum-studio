@@ -9,10 +9,9 @@ import { useProviderCatalog } from "./provider-catalog";
 
 interface RunListProps {
   runs: Run[];
-  status: string;
 }
 
-export function RunList({ runs, status }: RunListProps) {
+export function RunList({ runs }: RunListProps) {
   const catalog = useProviderCatalog();
   const [showComposer, setShowComposer] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -49,13 +48,7 @@ export function RunList({ runs, status }: RunListProps) {
 
   return (
     <div className="flex min-h-screen flex-col bg-background p-8 text-primary font-sans">
-      <Header
-        actions={
-          <>
-            <ProviderBadges />
-          </>
-        }
-      />
+      <Header actions={<ProviderBadges />} />
 
       <main className="flex-1">
         <div className="mb-6 flex items-center justify-between">

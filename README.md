@@ -102,3 +102,20 @@ bun run biome check .            # lint
 bun run tsc --noEmit             # typecheck (strict)
 bun test                         # tests
 ```
+
+## Project status
+
+Candelabrum Studio is open source under Apache-2.0 and maintained as a
+local-first macOS tool. The repository is public, but the app is still oriented
+around a single operator and local provider credentials.
+
+## Contributing
+
+Focused issues and pull requests are welcome. See
+[`CONTRIBUTING.md`](CONTRIBUTING.md) for the development workflow and validation
+commands.
+
+## Security
+
+Do not open public issues for vulnerabilities. See [`SECURITY.md`](SECURITY.md)
+for reporting guidance.

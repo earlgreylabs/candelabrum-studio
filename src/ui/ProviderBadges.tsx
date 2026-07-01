@@ -1,11 +1,6 @@
 import type { ProviderOption } from "@/providers/catalog";
 import { cn } from "./lib/cn";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "./primitives/tooltip";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./primitives/tooltip";
 import { useProviderCatalog } from "./provider-catalog";
 
 /**
@@ -61,7 +56,7 @@ export function ProviderBadges() {
                       : "border-transparent text-faint opacity-50 grayscale",
                   )}
                 >
-                  {brand.available ? "🟢 " + brand.label : "🔴 " + brand.label}
+                  {brand.available ? `🟢 ${brand.label}` : `🔴 ${brand.label}`}
                 </span>
               </TooltipTrigger>
               <TooltipContent>
